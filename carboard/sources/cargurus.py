@@ -20,6 +20,8 @@ SEARCHES = [  # (model slug, which of CarGurus' trim names to page through)
     ("Hyundai-Tucson-Hybrid-d3141", r"n line|sel convenience"),
     ("Honda-CR-V-d589", r"^sport\b(?!.*touring)"),
     ("Honda-CR-V-Hybrid-d3002", r"\bex-?l\b"),
+    ("Kia-Sportage-d164", r"^ex\b(?!.*prem)"),
+    ("Kia-Sportage-Hybrid-d3239", r"^ex\b(?!.*prem)"),
 ]
 MAX_PAGES = 20
 PAGE_SIZE = 24

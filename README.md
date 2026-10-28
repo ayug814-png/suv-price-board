@@ -1,6 +1,6 @@
 # SUV Price Board
 
-A live board of every Canadian listing for four 2025 SUVs, refreshed every 15 minutes:
+A live board of every Canadian listing for six 2025 SUVs, refreshed every 15 minutes:
 
 | Column | What counts |
 | --- | --- |
@@ -8,6 +8,8 @@ A live board of every Canadian listing for four 2025 SUVs, refreshed every 15 mi
 | Tucson Hybrid N Line | N Line hybrids (the lowest 2025 hybrid trim in Canada; panoramic sunroof is standard). Hybrids labelled "SEL Convenience" by US VIN decoders are shown as likely (?) because that VIN series also covers some Ultimates |
 | CR-V EX-L Hybrid | EX-L trim, hybrid (or fuel not stated; EX-L is hybrid-only for 2025 in Canada) |
 | CR-V Sport (gas) | Sport trim, gas engine (not Sport Hybrid / Sport Touring) |
+| Sportage EX w/ Panoramic Sunroof (gas) | EX trim, gas engine, with proof of the sunroof: roof wording in the title or "panoramic sunroof" in the description (a plain "sunroof" in the description or a ticked sunroof box shows as likely (?)). Not EX Premium, X-Line or the hybrids; an EX whose ad doesn't state the fuel counts as gas unless it mentions a hybrid |
+| Sportage EX Hybrid w/ Panoramic Sunroof | EX trim, hybrid (not the plug-in, EX Premium or SX), with the same proof of the sunroof |
 
 Rows are cities, cells are prices, and every price links to the original ad. The same car posted on several sites shows once with
 a link per site (AT = AutoTrader.ca, CG = CarGurus.ca, KJ = Kijiji, CP = Carpages.ca).

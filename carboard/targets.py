@@ -1,4 +1,4 @@
-"""The four cars on the board and the rules that decide which listings belong in each column."""
+"""The six cars on the board and the rules that decide which listings belong in each column."""
 import re
 
 from .util import norm
@@ -37,6 +37,25 @@ TARGETS = [
         "label": "2025 Honda CR-V Sport (Gas)",
         "rule": "CR-V in Sport trim with a gas engine. Sport Hybrid, Sport-L and Sport Touring are left out.",
     },
+    {
+        "key": "sportage_ex_gas",
+        "name": "Sportage EX",
+        "detail": "w/ Panoramic Sunroof · Gas",
+        "label": "2025 Kia Sportage EX w/ Panoramic Sunroof (Gas)",
+        "rule": "Gas Sportage in EX trim with proof of the panoramic sunroof: any roof wording in the title, or "
+                "'panoramic sunroof' in the description. A plain 'sunroof' in the description or a ticked sunroof "
+                "box makes it a likely match (?). The 2025 Sportage's only sunroof is the panoramic one. EX Premium, "
+                "X-Line and the hybrids are left out; an EX whose ad doesn't state the fuel counts as gas unless it "
+                "mentions a hybrid (every site lists the Sportage Hybrid as its own model).",
+    },
+    {
+        "key": "sportage_ex_hybrid",
+        "name": "Sportage EX Hybrid",
+        "detail": "w/ Panoramic Sunroof",
+        "label": "2025 Kia Sportage EX Hybrid w/ Panoramic Sunroof",
+        "rule": "Sportage Hybrid (not plug-in) in EX trim with proof of the panoramic sunroof, judged the same way as "
+                "the gas EX. EX Premium and SX hybrids are left out.",
+    },
 ]
 
 # (pattern, trim). A longer match swallows shorter ones inside it, so 'Sport Touring' isn't also 'Sport'
@@ -63,6 +82,15 @@ CRV_TRIMS = [
     (r"\bex\b", "ex"),
     (r"\bse\b", "se"),
     (r"\bblack edition\b", "black edition"),
+]
+# Canadian names (EX Premium, X-Line Limited) and US ones (X-Pro, SX Prestige), so a US import's trim isn't read as EX.
+SPORTAGE_TRIMS = [
+    (r"\bex[ _-]?prem(?:ium)?\b", "ex premium"),
+    (r"\bx[ -]?line\b", "x-line"),
+    (r"\bx[ -]?pro\b", "x-pro"),
+    (r"\bsx\b", "sx"),
+    (r"\blx\b", "lx"),
+    (r"\bex\b", "ex"),
 ]
 
 # 'Trend' package, its French name, or Hyundai Canada's model code for it (TUCWDK2EPRTR vs. base TUCWDK2EPR00).
@@ -106,7 +134,7 @@ def _tucson_vin_series(vin):
 
 
 def classify(listing):
-    """Return (target key, 'confirmed' | 'likely', evidence) or None if the listing isn't one of the four cars."""
+    """Return (target key, 'confirmed' | 'likely', evidence) or None if the listing isn't one of the six cars."""
     if listing.year != 2025:
         return None
     ident = norm(f"{listing.title} {listing.trim}")
@@ -115,6 +143,8 @@ def classify(listing):
         return _tucson(listing, ident)
     if "honda" in family and re.search(r"\bcr[ -]?v\b", family):
         return _crv(listing, ident)
+    if "kia" in family and "sportage" in family:
+        return _sportage(listing, ident)
     return None
 
 
@@ -189,4 +219,42 @@ def _crv(listing, ident):
         return None
     if trim == "sport" and power in ("gas", ""):
         return "crv_sport_gas", "confirmed", "Sport, gas" if power else "Sport (gas-only trim for 2025 in Canada)"
+    return None
+
+
+def _sportage(listing, ident):
+    trims = _trims(ident, SPORTAGE_TRIMS) or _trims(norm(listing.site_trim), SPORTAGE_TRIMS)
+    if (trims[0] if trims else "") != "ex":
+        return None
+    power = _powertrain(listing, ident)
+    if power == "hybrid":
+        target, trim = "sportage_ex_hybrid", "EX hybrid"
+    elif power == "gas":
+        target, trim = "sportage_ex_gas", "EX, gas"
+    elif power == "":
+        target, trim = "sportage_ex_gas", "EX (fuel not stated and no hybrid mentioned, so gas)"
+    else:
+        return None  # plug-in hybrid, or an electric fuel setting that could be either column
+
+    # The panoramic roof is the 2025 Sportage's only sunroof, so any roof wording in the title proves it. A bare
+    # 'panoramic' doesn't: Kia also calls the dashboard screens the "panoramic curved display".
+    text = norm(listing.text)
+    strong = []
+    m = PANO_IN_TEXT.search(ident) or ROOF_IN_TEXT.search(ident)
+    if m:
+        strong.append(f"'{m.group(0)}' in title")
+    m = PANO_IN_TEXT.search(text)
+    if m:
+        strong.append(f"'{m.group(0)}' in description")
+    if strong:
+        return target, "confirmed", "; ".join([trim] + strong)
+
+    weak = []
+    m = ROOF_IN_TEXT.search(text)
+    if m:
+        weak.append(f"'{m.group(0)}' in description")
+    if "sunroof" in listing.features:
+        weak.append("sunroof ticked in the listing's feature list")
+    if weak:
+        return target, "likely", "; ".join([trim] + weak)
     return None
