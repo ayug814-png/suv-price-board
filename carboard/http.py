@@ -7,7 +7,8 @@ import urllib.request
 
 BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 HTML_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
-RETRYABLE = {403, 408, 429, 500, 502, 503, 504}
+# 403/422/429 are what bot shields send when requests come a little fast; a slower retry usually gets through.
+RETRYABLE = {403, 408, 422, 429, 500, 502, 503, 504}
 
 
 class FetchError(Exception):
