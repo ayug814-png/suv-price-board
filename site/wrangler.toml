@@ -1,15 +1,16 @@
 # Cloudflare Worker that puts the password gate in front of the board.
-# The Deploy site workflow fills in the KV namespace id and your domain (cloud_sync.py configure-site).
+# The Deploy site workflow fills in your domain and the KV namespace id (cloud_sync.py configure-site).
 name = "suv-price-board"
 main = "worker.js"
 compatibility_date = "2025-09-01"
 workers_dev = false
 
-[[kv_namespaces]]
-binding = "BOARD"
-id = "REPLACE_WITH_KV_ID"
-
+# Top-level keys like routes must stay above the [[kv_namespaces]] table, or TOML files them under it.
 # routes = [
 #   { pattern = "example.com", custom_domain = true },
 #   { pattern = "www.example.com", custom_domain = true },
 # ]
+
+[[kv_namespaces]]
+binding = "BOARD"
+id = "REPLACE_WITH_KV_ID"
