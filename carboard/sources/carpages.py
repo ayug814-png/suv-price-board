@@ -11,7 +11,7 @@ from ..util import province_code, tidy_city, to_int
 
 NAME = "Carpages.ca"
 SHORT = "CP"
-SEARCHES = [("Hyundai", "Tucson"), ("Honda", "CR-V")]
+SEARCHES = [("Hyundai", "Tucson"), ("Honda", "CR-V"), ("Kia", "Sportage")]
 URL = "https://www.carpages.ca/used-cars/search/?make_name={make}&model_name={model}&year_start=2025&year_end=2025&page={page}"
 PAGE_SIZE = 50
 MAX_PAGES = 10
