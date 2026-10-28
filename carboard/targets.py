@@ -40,18 +40,21 @@ TARGETS = [
     {
         "key": "sportage_ex_gas",
         "name": "Sportage EX",
-        "detail": "Gas",
-        "label": "2025 Kia Sportage EX (Gas)",
-        "rule": "Sportage in EX trim with a gas engine. EX Premium, X-Line and the hybrids are left out. An EX whose ad "
-                "doesn't state the fuel counts as gas unless it mentions a hybrid (every site lists the Sportage "
-                "Hybrid as its own model).",
+        "detail": "w/ Panoramic Sunroof · Gas",
+        "label": "2025 Kia Sportage EX w/ Panoramic Sunroof (Gas)",
+        "rule": "Gas Sportage in EX trim with proof of the panoramic sunroof: any roof wording in the title, or "
+                "'panoramic sunroof' in the description. A plain 'sunroof' in the description or a ticked sunroof "
+                "box makes it a likely match (?). The 2025 Sportage's only sunroof is the panoramic one. EX Premium, "
+                "X-Line and the hybrids are left out; an EX whose ad doesn't state the fuel counts as gas unless it "
+                "mentions a hybrid (every site lists the Sportage Hybrid as its own model).",
     },
     {
         "key": "sportage_ex_hybrid",
         "name": "Sportage EX Hybrid",
-        "detail": "2025",
-        "label": "2025 Kia Sportage EX Hybrid",
-        "rule": "Sportage Hybrid (not plug-in) in EX trim. EX Premium and SX hybrids are left out.",
+        "detail": "w/ Panoramic Sunroof",
+        "label": "2025 Kia Sportage EX Hybrid w/ Panoramic Sunroof",
+        "rule": "Sportage Hybrid (not plug-in) in EX trim with proof of the panoramic sunroof, judged the same way as "
+                "the gas EX. EX Premium and SX hybrids are left out.",
     },
 ]
 
@@ -225,9 +228,33 @@ def _sportage(listing, ident):
         return None
     power = _powertrain(listing, ident)
     if power == "hybrid":
-        return "sportage_ex_hybrid", "confirmed", "EX hybrid"
-    if power == "gas":
-        return "sportage_ex_gas", "confirmed", "EX, gas"
-    if power == "":
-        return "sportage_ex_gas", "confirmed", "EX (fuel not stated and no hybrid mentioned, so gas)"
-    return None  # plug-in hybrid, or an electric fuel setting that could be either column
+        target, trim = "sportage_ex_hybrid", "EX hybrid"
+    elif power == "gas":
+        target, trim = "sportage_ex_gas", "EX, gas"
+    elif power == "":
+        target, trim = "sportage_ex_gas", "EX (fuel not stated and no hybrid mentioned, so gas)"
+    else:
+        return None  # plug-in hybrid, or an electric fuel setting that could be either column
+
+    # The panoramic roof is the 2025 Sportage's only sunroof, so any roof wording in the title proves it. A bare
+    # 'panoramic' doesn't: Kia also calls the dashboard screens the "panoramic curved display".
+    text = norm(listing.text)
+    strong = []
+    m = PANO_IN_TEXT.search(ident) or ROOF_IN_TEXT.search(ident)
+    if m:
+        strong.append(f"'{m.group(0)}' in title")
+    m = PANO_IN_TEXT.search(text)
+    if m:
+        strong.append(f"'{m.group(0)}' in description")
+    if strong:
+        return target, "confirmed", "; ".join([trim] + strong)
+
+    weak = []
+    m = ROOF_IN_TEXT.search(text)
+    if m:
+        weak.append(f"'{m.group(0)}' in description")
+    if "sunroof" in listing.features:
+        weak.append("sunroof ticked in the listing's feature list")
+    if weak:
+        return target, "likely", "; ".join([trim] + weak)
+    return None
