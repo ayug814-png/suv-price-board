@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SUV Price Board</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --panel: #ffffff; --ink: #111418; --muted: #5b6470; --faint: #858e9a;
+    --line: #e4e7ec; --line-strong: #d0d5dd; --link: #0a58ca; --hover: #f8f9fb;
+    --best-bg: #dff3e6; --best-ink: #0d6630; --new-bg: #e5ecff; --new-ink: #2346b0;
+    --down: #11804a; --up: #b3362c; --likely: #8f5f00;
+    --chip: #eceff3; --chip-on: #111418; --chip-on-ink: #ffffff; --warn-bg: #fff3dc; --warn-ink: #774800;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a20; --ink: #e8eaee; --muted: #a3abb7; --faint: #7d8693;
+      --line: #262a33; --line-strong: #363b46; --link: #7cb2ff; --hover: #1c2027;
+      --best-bg: #123620; --best-ink: #84e3aa; --new-bg: #1c2649; --new-ink: #adc0ff;
+      --down: #5fd394; --up: #ff8b80; --likely: #e3b341;
+      --chip: #232731; --chip-on: #e8eaee; --chip-on-ink: #111418; --warn-bg: #3a2a0a; --warn-ink: #ffd27a;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--link); }
+  .wrap { max-width: 1680px; margin: 0 auto; padding: 20px 24px 40px; }
+  header.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 16px; }
+  h1 { font-size: 22px; line-height: 1.2; margin: 0; letter-spacing: -0.01em; }
+  .sub { margin: 4px 0 0; color: var(--muted); }
+  .status { color: var(--muted); font-size: 13px; text-align: right; }
+  .status b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; margin-top: 6px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); font-size: 12px; color: var(--ink); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--down); flex: none; }
+  .dot.bad { background: var(--up); }
+  .banner { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .card { text-align: left; font: inherit; color: inherit; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; }
+  .card:hover { border-color: var(--line-strong); }
+  .card[aria-pressed="false"] { opacity: .55; }
+  .card .name { font-weight: 650; }
+  .card .detail { color: var(--muted); font-size: 12px; }
+  .card .best { display: block; font-size: 24px; font-weight: 700; margin-top: 8px; font-variant-numeric: tabular-nums; text-decoration: none; }
+  .card .best:hover { text-decoration: underline; }
+  .card .none { font-size: 15px; color: var(--faint); margin-top: 8px; }
+  .card .where, .card .counts { color: var(--muted); font-size: 12.5px; }
+  .card .counts { margin-top: 6px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font: inherit; font-size: 12.5px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--chip); color: var(--ink); cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--chip-on); border-color: var(--chip-on); color: var(--chip-on-ink); }
+  .chip .n { opacity: .7; margin-left: 3px; }
+  select, input[type="search"] { font: inherit; padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--panel); color: var(--ink); }
+  input[type="search"] { min-width: 200px; }
+  label.field { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  label.check { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); cursor: pointer; }
+  .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: auto; max-height: calc(100vh - 120px); }
+  table.board { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 900px; }
+  .board th, .board td { border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; padding: 8px 12px; }
+  .board thead th { position: sticky; top: 0; z-index: 2; background: var(--panel); border-bottom: 1px solid var(--line-strong); font-weight: 650; }
+  .board .loc { position: sticky; left: 0; z-index: 1; background: var(--panel); width: 190px; min-width: 150px; border-right: 1px solid var(--line); }
+  .board thead .loc { z-index: 3; }
+  .board tbody tr:hover td, .board tbody tr:hover th { background: var(--hover); }
+  .col-detail, .col-count { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .city { font-weight: 650; }
+  .prov { color: var(--muted); font-size: 12px; }
+  .vehs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .veh { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 7px; }
+  .price { font-weight: 650; font-variant-numeric: tabular-nums; text-decoration: none; }
+  .price:hover { text-decoration: underline; }
+  .veh.best .price { background: var(--best-bg); color: var(--best-ink); padding: 0 6px; border-radius: 5px; }
+  .veh.likely .price { text-decoration: underline dotted; text-underline-offset: 3px; }
+  .veh.noprice .price { font-weight: 500; color: var(--muted); }
+  .meta { color: var(--faint); font-size: 12px; }
+  .src { color: var(--muted); font-size: 10.5px; font-weight: 650; text-decoration: none; border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 4px; margin-left: 2px; }
+  .src:hover { color: var(--link); border-color: var(--link); }
+  .tag { font-size: 10.5px; font-weight: 700; letter-spacing: .03em; border-radius: 4px; padding: 0 5px; }
+  .tag.new { background: var(--new-bg); color: var(--new-ink); }
+  .tag.q { color: var(--likely); border: 1px solid currentColor; cursor: help; }
+  .chg { font-size: 12px; font-weight: 650; }
+  .chg.down { color: var(--down); }
+  .chg.up { color: var(--up); }
+  .empty { color: var(--faint); }
+  .nores { padding: 36px 16px; text-align: center; color: var(--muted); }
+  footer { margin-top: 18px; color: var(--muted); font-size: 13px; }
+  footer details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; }
+  footer summary { cursor: pointer; font-weight: 650; color: var(--ink); }
+  footer dl { margin: 10px 0 0; }
+  footer dt { color: var(--ink); font-weight: 600; margin-top: 8px; }
+  footer dd { margin: 2px 0 0; }
+  .src-table { border-collapse: collapse; margin-top: 10px; width: 100%; }
+  .src-table th, .src-table td { text-align: left; padding: 5px 10px 5px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .src-table th { color: var(--ink); font-weight: 600; }
+  @media (max-width: 640px) {
+    .wrap { padding: 16px; }
+    .status { text-align: left; }
+    .pills { justify-content: flex-start; }
+    input[type="search"] { min-width: 0; width: 100%; }
+    .cards { gap: 8px; }
+    .card { padding: 10px 12px; }
+    .card .best { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>2025 SUV Price Board</h1>
+      <p class="sub">Every matching listing on AutoTrader.ca, CarGurus.ca, Kijiji and Carpages.ca, across Canada. Prices link to the original ad.</p>
+    </div>
+    <div class="status">
+      <div>Updated <b id="updated">–</b> · next check in <b id="countdown">–</b></div>
+      <div class="pills" id="pills"></div>
+    </div>
+  </header>
+  <div class="banner" id="stale" hidden></div>
+  <section class="cards" id="cards" aria-label="Lowest price per car (click a card to show or hide its column)"></section>
+  <section class="controls" aria-label="Filters">
+    <div class="chips" id="provs"></div>
+    <label class="field">Distance <select id="dist"></select></label>
+    <label class="field">Sort <select id="sort">
+      <option value="near">Nearest first</option>
+      <option value="price">Lowest price first</option>
+      <option value="city">City A–Z</option>
+      <option value="count">Most listings</option>
+    </select></label>
+    <input type="search" id="q" placeholder="Filter by city or dealer" aria-label="Filter by city or dealer">
+    <label class="check"><input type="checkbox" id="likely"> Include likely matches (?)</label>
+    <label class="check"><input type="checkbox" id="newonly"> New in last <span id="newh">24</span> h only</label>
+    <label class="check"><input type="checkbox" id="noprice"> Show ads without a price</label>
+  </section>
+  <div class="table-wrap" id="tablewrap"><table class="board" id="board"></table></div>
+  <footer>
+    <details>
+      <summary>How listings are matched</summary>
+      <dl id="rules"></dl>
+      <p>Prices are as advertised, before tax and licensing. When the same car is posted on more than one site it's shown once, with a link per site
+        (AT, CG, KJ, CP). <span class="tag new">NEW</span> means first seen in the last <span id="newh2">24</span> hours; ▼/▲ show a price change in the
+        last 7 days; <span class="tag q">?</span> marks a likely match whose sunroof only shows up in a feature checklist or description, so check the ad.
+        A listing leaves the board once <span id="goneafter">3</span> complete scans of its site in a row no longer show it.</p>
+    </details>
+    <details>
+      <summary>Sources</summary>
+      <table class="src-table" id="srctable"></table>
+    </details>
+  </footer>
+</div>
+<script>
+(function () {
+  "use strict";
+  const D = /*__BOARD_DATA__*/null;
+  const $ = (sel) => document.querySelector(sel);
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const currency = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
+  const money = (p) => currency.format(p);
+  const timeOnly = new Intl.DateTimeFormat("en-CA", { hour: "numeric", minute: "2-digit" });
+  const dateTime = new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const when = (iso) => (iso ? dateTime.format(new Date(iso)) : "never");
+  const fmtKm = (km) => (km == null ? "" : km < 1000 ? km + " km" : Math.round(km / 1000) + "k km");
+  const COND = { new: "New", demo: "Demo", used: "Used" };
+  const T = D.targets;
+  const PROV_ORDER = ["ON", "QC", "BC", "AB", "MB", "SK", "NS", "NB", "NL", "PE", "YT", "NT", "NU", ""];
+
+  // ---- persisted view state (per browser; the board works without it) ----
+  const KEY = "suv-price-board:view";
+  const S = Object.assign(
+    { provs: [], dist: "", sort: D.home.known ? "near" : "price", q: "", likely: true, newOnly: false, noPrice: false, hidden: [] },
+    (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })()
+  );
+  if (!D.home.known && S.sort === "near") S.sort = "price";
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+  // ---- filtering ----
+  function keep(v) {
+    return (S.likely || !v.l) && (!S.newOnly || v.n) && (S.noPrice || v.p != null);
+  }
+
+  function view() {
+    const q = S.q.trim().toLowerCase();
+    const provs = new Set(S.provs);
+    const maxDist = S.dist ? Number(S.dist) : null;
+    const rows = [];
+    for (const r of D.rows) {
+      if (provs.size && !provs.has(r.p)) continue;
+      if (maxDist != null && (r.d == null || r.d > maxDist)) continue;
+      const placeHit = !q || (r.c + " " + r.p).toLowerCase().includes(q);
+      const cells = {};
+      let count = 0, min = null;
+      for (const t of T) {
+        const list = (r.v[t.key] || []).filter((v) => keep(v) && (placeHit || (v.d + " " + v.t).toLowerCase().includes(q)));
+        cells[t.key] = list;
+        if (S.hidden.includes(t.key)) continue;
+        count += list.length;
+        for (const v of list) if (v.p != null && (min == null || v.p < min)) min = v.p;
+      }
+      rows.push({ r, cells, count, min });
+    }
+    const stats = {};
+    for (const t of T) {
+      const s = { count: 0, fresh: 0, best: null, where: null };
+      for (const row of rows) for (const v of row.cells[t.key]) {
+        s.count++;
+        if (v.n) s.fresh++;
+        if (v.p != null && (s.best == null || v.p < s.best.p)) { s.best = v; s.where = row.r; }
+      }
+      stats[t.key] = s;
+    }
+    const shown = rows.filter((row) => row.count > 0);
+    const byName = (a, b) => a.r.c.localeCompare(b.r.c) || a.r.p.localeCompare(b.r.p);
+    const nullsLast = (x) => (x == null ? Infinity : x);
+    const sorters = {
+      near: (a, b) => nullsLast(a.r.d) - nullsLast(b.r.d) || nullsLast(a.min) - nullsLast(b.min) || byName(a, b),
+      price: (a, b) => nullsLast(a.min) - nullsLast(b.min) || byName(a, b),
+      city: byName,
+      count: (a, b) => b.count - a.count || byName(a, b),
+    };
+    shown.sort(sorters[S.sort] || sorters.price);
+    return { rows: shown, stats };
+  }
+
+  // ---- rendering ----
+  function vehicle(v, isBest) {
+    const cls = ["veh"];
+    if (isBest) cls.push("best");
+    if (v.l) cls.push("likely");
+    if (v.p == null) cls.push("noprice");
+    const tip = [
+      v.t,
+      v.d && "Seller: " + v.d + (v.pv ? " (private)" : ""),
+      v.km != null && v.km.toLocaleString("en-CA") + " km",
+      COND[v.c] || v.c,
+      "First seen " + when(v.fs),
+      (v.l ? "Likely match: " : "Matched on: ") + v.ev,
+      isBest && "Lowest price in this column with the current filters",
+    ].filter(Boolean).join("\n");
+    const lead = v.links[0];
+    let html = '<li class="' + cls.join(" ") + '"><a class="price" href="' + esc(lead[1]) + '" target="_blank" rel="noopener" title="' + esc(tip) + '">' +
+      (v.p == null ? "No price listed" : money(v.p)) + "</a>";
+    if (v.l) html += '<span class="tag q" title="' + esc("Likely match: " + v.ev + ". Check the ad for the sunroof.") + '">?</span>';
+    if (v.n) html += '<span class="tag new">NEW</span>';
+    if (v.ch) {
+      html += v.ch < 0
+        ? '<span class="chg down" title="Price dropped ' + esc(when(v.ca)) + '">▼' + money(-v.ch) + "</span>"
+        : '<span class="chg up" title="Price raised ' + esc(when(v.ca)) + '">▲' + money(v.ch) + "</span>";
+    }
+    const meta = [fmtKm(v.km), v.c !== "used" ? COND[v.c] || v.c : "", v.pv ? "Private" : ""].filter(Boolean).join(" · ");
+    html += '<span class="meta">' + esc(meta) + v.links.map((l) =>
+      '<a class="src" href="' + esc(l[1]) + '" target="_blank" rel="noopener" title="Open on ' + esc(l[2]) + '">' + esc(l[0]) + "</a>").join("") + "</span></li>";
+    return html;
+  }
+
+  function renderCards(stats) {
+    $("#cards").innerHTML = T.map((t) => {
+      const s = stats[t.key];
+      const on = !S.hidden.includes(t.key);
+      const best = s.best
+        ? '<a class="best" href="' + esc(s.best.links[0][1]) + '" target="_blank" rel="noopener">' + money(s.best.p) + "</a>" +
+          '<div class="where">' + esc(s.where.c + ", " + s.where.p) + (s.where.d != null ? " · " + s.where.d.toLocaleString("en-CA") + " km away" : "") + "</div>"
+        : '<div class="none">No listings right now</div>';
+      return '<div class="card" role="button" tabindex="0" aria-pressed="' + on + '" data-key="' + t.key + '" title="' + (on ? "Hide" : "Show") + ' this column">' +
+        '<div class="name">' + esc(t.name) + '</div><div class="detail">' + esc(t.detail) + "</div>" + best +
+        '<div class="counts">' + s.count + " listing" + (s.count === 1 ? "" : "s") + (s.fresh ? " · " + s.fresh + " new" : "") + (on ? "" : " · column hidden") + "</div></div>";
+    }).join("");
+  }
+
+  function renderTable(v) {
+    const cols = T.filter((t) => !S.hidden.includes(t.key));
+    const best = {};
+    for (const t of cols) best[t.key] = v.stats[t.key].best ? v.stats[t.key].best.p : null;
+    let html = '<thead><tr><th class="loc" scope="col">Location<div class="col-count">' + v.rows.length + " place" + (v.rows.length === 1 ? "" : "s") + "</div></th>";
+    for (const t of cols) {
+      html += '<th scope="col" title="' + esc(t.label) + '"><div>' + esc(t.name) + '</div><div class="col-detail">' + esc(t.detail) + "</div>" +
+        '<div class="col-count">' + v.stats[t.key].count + " listing" + (v.stats[t.key].count === 1 ? "" : "s") + "</div></th>";
+    }
+    html += "</tr></thead><tbody>";
+    if (!v.rows.length) {
+      html += '<tr><td class="nores" colspan="' + (cols.length + 1) + '">No listings match these filters.</td></tr>';
+    }
+    for (const row of v.rows) {
+      const r = row.r;
+      html += '<tr><th class="loc" scope="row"><div class="city">' + esc(r.c) + '</div><div class="prov">' + esc(r.p || "Province unknown") +
+        (r.d != null ? " · " + r.d.toLocaleString("en-CA") + " km" : "") + "</div></th>";
+      for (const t of cols) {
+        const list = row.cells[t.key];
+        html += list.length
+          ? '<td><ul class="vehs">' + list.map((x) => vehicle(x, x.p != null && x.p === best[t.key])).join("") + "</ul></td>"
+          : '<td class="empty">–</td>';
+      }
+      html += "</tr>";
+    }
+    $("#board").innerHTML = html + "</tbody>";
+  }
+
+  function renderProvinces() {
+    const counts = {};
+    for (const r of D.rows) for (const t of T) counts[r.p] = (counts[r.p] || 0) + (r.v[t.key] || []).length;
+    const provs = Object.keys(counts).sort((a, b) => PROV_ORDER.indexOf(a) - PROV_ORDER.indexOf(b));
+    $("#provs").innerHTML = '<button class="chip" data-all="1" aria-pressed="' + (S.provs.length === 0) + '">All Canada</button>' +
+      provs.map((p) => '<button class="chip" data-prov="' + esc(p) + '" aria-pressed="' + S.provs.includes(p) + '">' + esc(p || "Unknown") +
+        '<span class="n">' + counts[p] + "</span></button>").join("");
+  }
+
+  function render() {
+    const v = view();
+    renderCards(v.stats);
+    renderProvinces();
+    renderTable(v);
+    save();
+  }
+
+  // ---- static parts ----
+  function renderStatic() {
+    $("#newh").textContent = $("#newh2").textContent = D.newHours;
+    $("#goneafter").textContent = D.removeAfter;
+    const dist = $("#dist");
+    dist.innerHTML = '<option value="">Any distance</option>' + (D.home.known
+      ? [100, 250, 500, 1000, 2000].map((d) => '<option value="' + d + '">Within ' + d.toLocaleString("en-CA") + " km of " + esc(D.home.label) + "</option>").join("")
+      : "");
+    dist.disabled = !D.home.known;
+    if (!D.home.known) $("#sort").querySelector('[value="near"]').disabled = true;
+    $("#pills").innerHTML = D.sources.map((s) =>
+      '<span class="pill" title="' + esc(s.ok ? "Last full scan " + when(s.lastOk) + " · " + s.scanned + " ads scanned" : "Last scan had problems: " + s.errors.join("; ") + "\nLast full scan " + when(s.lastOk)) + '">' +
+      '<span class="dot' + (s.ok ? "" : " bad") + '"></span>' + esc(s.name) + " " + s.matched + "</span>").join("");
+    $("#rules").innerHTML = T.map((t) => "<dt>" + esc(t.label) + "</dt><dd>" + esc(t.rule) + (t.note ? " " + esc(t.note) : "") + "</dd>").join("");
+    $("#srctable").innerHTML = "<tr><th>Site</th><th>Status</th><th>Matched</th><th>Ads scanned</th><th>Last full scan</th></tr>" +
+      D.sources.map((s) => "<tr><td>" + esc(s.name) + "</td><td>" + (s.ok ? "OK" : "Problem: " + esc(s.errors.join("; "))) + "</td><td>" + s.matched +
+        "</td><td>" + s.scanned + "</td><td>" + esc(when(s.lastOk)) + "</td></tr>").join("") +
+      '<tr><td colspan="5">Last run took ' + Math.round(D.run.seconds) + " s and made " + D.run.requests + " requests.</td></tr>";
+    $("#sort").value = S.sort;
+    $("#dist").value = S.dist;
+    $("#q").value = S.q;
+    $("#likely").checked = S.likely;
+    $("#newonly").checked = S.newOnly;
+    $("#noprice").checked = S.noPrice;
+  }
+
+  // ---- live status, auto-reload ----
+  function tick() {
+    const ageMin = (Date.now() - Date.parse(D.generated)) / 60000;
+    $("#updated").textContent = (ageMin < 1 ? "just now" : Math.round(ageMin) + " min ago") + " (" + timeOnly.format(new Date(D.generated)) + ")";
+    const left = Date.parse(D.next) - Date.now();
+    $("#countdown").textContent = left > 0
+      ? Math.floor(left / 60000) + ":" + String(Math.floor((left % 60000) / 1000)).padStart(2, "0")
+      : "any moment";
+    const stale = ageMin > D.refresh * 3;
+    const banner = $("#stale");
+    banner.hidden = !stale;
+    if (stale) banner.textContent = "This board hasn't refreshed for " + Math.round(ageMin) + " minutes. The scheduled task may be off or the PC was asleep; it will catch up on the next run.";
+  }
+
+  function scheduleReload() {
+    // A run takes a few minutes, so check back a little after the next one should have finished.
+    let wait = Date.parse(D.next) + 4 * 60000 - Date.now();
+    if (wait < 60000) wait = (Date.now() - Date.parse(D.generated)) / 60000 > D.refresh * 3 ? 5 * 60000 : 2 * 60000;
+    setTimeout(() => {
+      try { sessionStorage.setItem(KEY + ":scroll", JSON.stringify([window.scrollY, $("#tablewrap").scrollTop, $("#tablewrap").scrollLeft])); } catch (e) {}
+      location.reload();
+    }, wait);
+  }
+
+  function restoreScroll() {
+    try {
+      const pos = JSON.parse(sessionStorage.getItem(KEY + ":scroll"));
+      sessionStorage.removeItem(KEY + ":scroll");
+      if (pos) { window.scrollTo(0, pos[0]); $("#tablewrap").scrollTop = pos[1]; $("#tablewrap").scrollLeft = pos[2]; }
+    } catch (e) {}
+  }
+
+  // ---- events ----
+  $("#provs").addEventListener("click", (e) => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    const p = chip.dataset.prov;
+    if (chip.dataset.all) S.provs = [];
+    else S.provs = S.provs.includes(p) ? S.provs.filter((x) => x !== p) : S.provs.concat(p);
+    render();
+  });
+  const toggleCard = (card) => {
+    const key = card.dataset.key;
+    S.hidden = S.hidden.includes(key) ? S.hidden.filter((k) => k !== key) : S.hidden.concat(key);
+    render();
+  };
+  $("#cards").addEventListener("click", (e) => {
+    if (e.target.closest("a")) return;
+    const card = e.target.closest(".card");
+    if (card) toggleCard(card);
+  });
+  $("#cards").addEventListener("keydown", (e) => {
+    const card = e.target.closest(".card");
+    if (card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); toggleCard(card); }
+  });
+  $("#dist").addEventListener("change", (e) => { S.dist = e.target.value; render(); });
+  $("#sort").addEventListener("change", (e) => { S.sort = e.target.value; render(); });
+  $("#q").addEventListener("input", (e) => { S.q = e.target.value; render(); });
+  $("#likely").addEventListener("change", (e) => { S.likely = e.target.checked; render(); });
+  $("#newonly").addEventListener("change", (e) => { S.newOnly = e.target.checked; render(); });
+  $("#noprice").addEventListener("change", (e) => { S.noPrice = e.target.checked; render(); });
+
+  renderStatic();
+  render();
+  restoreScroll();
+  tick();
+  setInterval(tick, 1000);
+  scheduleReload();
+})();
+</script>
+</body>
+</html>

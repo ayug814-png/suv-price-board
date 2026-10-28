@@ -1,0 +1,14 @@
+# Generated on each run; in the cloud these live on the website instead (see cloud_sync.py)
+board.html
+*.tmp
+data/
+logs/
+__pycache__/
+config.local.json
+
+# Website tooling and secrets
+site/node_modules/
+site/.wrangler/
+site/.dev.vars
+site/.upload_token
+.claude/

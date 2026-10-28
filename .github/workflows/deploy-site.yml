@@ -1,0 +1,55 @@
+name: Deploy site
+
+# Publishes the password page (site/worker.js) on your domain. Run it by hand after adding the settings in the
+# README, and again after changing BOARD_PASSWORD; it also runs by itself when site/ changes.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["site/**", ".github/workflows/deploy-site.yml"]
+
+concurrency:
+  group: deploy-site
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      BOARD_PASSWORD: ${{ secrets.BOARD_PASSWORD }}
+      BOARD_DOMAIN: ${{ vars.BOARD_DOMAIN }}
+    steps:
+      - name: Check the settings are in place
+        run: |
+          missing=""
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BOARD_PASSWORD BOARD_DOMAIN; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Add these under Settings > Secrets and variables > Actions first:$missing"
+            exit 1
+          fi
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Point the site at its storage and your domain
+        run: python cloud_sync.py configure-site
+      - name: Install Wrangler
+        working-directory: site
+        run: npm ci --no-audit --no-fund
+      - name: Deploy
+        working-directory: site
+        run: npx wrangler deploy
+      - name: Set the password and the session key
+        working-directory: site
+        run: |
+          printf '%s' "$BOARD_PASSWORD" | npx wrangler secret put BOARD_PASSWORD
+          if ! npx wrangler secret list | grep -q SESSION_SECRET; then
+            openssl rand -base64 32 | tr -d '\n' | npx wrangler secret put SESSION_SECRET
+          fi

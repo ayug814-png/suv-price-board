@@ -1,0 +1,15 @@
+{
+  "home": {"city": "", "province": "", "label": ""},
+  "refresh_minutes": 15,
+  "price_floor": 15000,
+  "price_ceiling": 80000,
+  "remove_after_missed_runs": 3,
+  "new_badge_hours": 24,
+  "geocode_per_run": 60,
+  "sources": {
+    "autotrader": true,
+    "cargurus": true,
+    "kijiji": true,
+    "carpages": false
+  }
+}

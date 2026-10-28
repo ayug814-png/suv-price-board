@@ -1,0 +1,62 @@
+name: Scan listings
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"  # every 15 minutes, off the top of the hour when GitHub is busiest
+    - cron: "41 5 * * 1"          # weekly keep-alive: GitHub pauses schedules in quiet public repos after 60 days
+  workflow_dispatch:
+
+concurrency:
+  group: scan
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  check:
+    if: github.event.schedule != '41 5 * * 1'
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - id: check
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ACCOUNT" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Cloudflare isn't connected yet (see the README), so there's nowhere to publish the board. Skipping."
+          fi
+
+  scan:
+    needs: check
+    if: needs.check.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    env:
+      BOARD_HOME: ${{ vars.BOARD_HOME }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Fetch listing history from the site
+        run: python cloud_sync.py pull
+      - name: Scan the listing sites and rebuild the board
+        run: python run.py
+      - name: Publish the board
+        run: python cloud_sync.py push
+
+  keepalive:
+    if: github.event.schedule == '41 5 * * 1'
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh workflow enable scan.yml --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ github.token }}
