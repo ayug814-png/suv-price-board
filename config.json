@@ -6,10 +6,12 @@
   "remove_after_missed_runs": 3,
   "new_badge_hours": 24,
   "geocode_per_run": 60,
+  "scan_every_minutes": {"dealers": 60},
   "sources": {
     "autotrader": true,
     "cargurus": true,
     "kijiji": true,
-    "carpages": false
+    "carpages": false,
+    "dealers": true
   }
 }

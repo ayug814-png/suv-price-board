@@ -110,7 +110,7 @@
   <header class="top">
     <div>
       <h1>2025 SUV Price Board</h1>
-      <p class="sub">Every matching listing on AutoTrader.ca, CarGurus.ca, Kijiji and Carpages.ca, across Canada. Prices link to the original ad.</p>
+      <p class="sub">Every matching listing on AutoTrader.ca, CarGurus.ca, Kijiji and Carpages.ca across Canada, and on Ontario Hyundai, Honda and Kia dealers' own websites. Prices link to the original ad.</p>
     </div>
     <div class="status">
       <div>Updated <b id="updated">–</b> · next check in <b id="countdown">–</b></div>
@@ -138,8 +138,8 @@
     <details>
       <summary>How listings are matched</summary>
       <dl id="rules"></dl>
-      <p>Prices are as advertised, before tax and licensing. When the same car is posted on more than one site it's shown once, with a link per site
-        (AT, CG, KJ, CP). <span class="tag new">NEW</span> means first seen in the last <span id="newh2">24</span> hours; ▼/▲ show a price change in the
+      <p>Prices are as advertised, before tax and licensing. When the same car is posted on more than one site it's shown once at its lowest price, with a link per site
+        (AT, CG, KJ, CP; DLR is the dealer's own website). <span class="tag new">NEW</span> means first seen in the last <span id="newh2">24</span> hours; ▼/▲ show a price change in the
         last 7 days; <span class="tag q">?</span> marks a likely match whose sunroof only shows up in a feature checklist or description, so check the ad.
         A listing leaves the board once <span id="goneafter">3</span> complete scans of its site in a row no longer show it.</p>
     </details>
@@ -323,11 +323,13 @@
     dist.disabled = !D.home.known;
     if (!D.home.known) $("#sort").querySelector('[value="near"]').disabled = true;
     $("#pills").innerHTML = D.sources.map((s) =>
-      '<span class="pill" title="' + esc(s.ok ? "Last full scan " + when(s.lastOk) + " · " + s.scanned + " ads scanned" : "Last scan had problems: " + s.errors.join("; ") + "\nLast full scan " + when(s.lastOk)) + '">' +
+      '<span class="pill" title="' + esc((s.ok ? "Last full scan " + when(s.lastOk) + " · " + s.scanned + " ads scanned" : "Last scan had problems: " + s.errors.join("; ") + "\nLast full scan " + when(s.lastOk)) +
+        (s.notes.length ? "\n" + s.notes.join("\n") : "")) + '">' +
       '<span class="dot' + (s.ok ? "" : " bad") + '"></span>' + esc(s.name) + " " + s.matched + "</span>").join("");
     $("#rules").innerHTML = T.map((t) => "<dt>" + esc(t.label) + "</dt><dd>" + esc(t.rule) + (t.note ? " " + esc(t.note) : "") + "</dd>").join("");
     $("#srctable").innerHTML = "<tr><th>Site</th><th>Status</th><th>Matched</th><th>Ads scanned</th><th>Last full scan</th></tr>" +
-      D.sources.map((s) => "<tr><td>" + esc(s.name) + "</td><td>" + (s.ok ? "OK" : "Problem: " + esc(s.errors.join("; "))) + "</td><td>" + s.matched +
+      D.sources.map((s) => "<tr><td>" + esc(s.name) + "</td><td>" + (s.ok ? "OK" : "Problem: " + esc(s.errors.join("; "))) +
+        (s.notes.length ? '<div class="meta">' + esc(s.notes.join(". ")) + ".</div>" : "") + "</td><td>" + s.matched +
         "</td><td>" + s.scanned + "</td><td>" + esc(when(s.lastOk)) + "</td></tr>").join("") +
       '<tr><td colspan="5">Last run took ' + Math.round(D.run.seconds) + " s and made " + D.run.requests + " requests.</td></tr>";
     $("#sort").value = S.sort;

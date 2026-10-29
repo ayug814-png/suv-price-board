@@ -1,4 +1,5 @@
 """The six cars on the board and the rules that decide which listings belong in each column."""
+import dataclasses
 import re
 
 from .util import norm
@@ -258,3 +259,12 @@ def _sportage(listing, ident):
     if weak:
         return target, "likely", "; ".join([trim] + weak)
     return None
+
+
+def wants_description(listing):
+    """Whether a description could still change this listing's match: it would match with proof of the sunroof but
+    its title doesn't prove it. Lets a source fetch only the vehicle pages it needs."""
+    hit = classify(listing)
+    if hit and hit[1] == "confirmed":
+        return False
+    return classify(dataclasses.replace(listing, text="panoramic sunroof")) is not None
