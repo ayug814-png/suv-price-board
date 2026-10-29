@@ -21,13 +21,16 @@ inventory on the websites of Ontario's new-car dealers of every brand: new, demo
 and Kia dealers, and used ones at every other dealer (a Subaru or Toyota dealer with a traded-in Tucson, say). A DLR link's tooltip
 names the dealer.
 
-- The dealers are listed in `carboard/dealers.json`: Kia's and Hyundai's from the brands' own dealer locators, the rest from Auto123's
-  dealer directory, with each website found from the dealer's email or name and checked against its phone number, or its name and
-  city (some weren't found). To add or fix one, edit its line; leave `platform` empty and the scan works it out.
+- The dealers are listed in `carboard/dealers.json`: Kia's and Hyundai's from the brands' own dealer locators, the other brands'
+  from Auto123's dealer directory, plus every Ontario dealer (independents included) that was advertising a 2025 Tucson, CR-V or
+  Sportage on AutoTrader when the list was built. Each website was found from the dealer's email or name and checked against its
+  phone number, or its name and city; dealers whose website couldn't be found were left out. To add or fix one, edit its line;
+  leave `platform` empty and the scan works it out.
 - Dealer sites run on a handful of website platforms. The board reads the three most common in Ontario (D2C Media, SM360 and
   Convertus). Sites behind a bot check (Cloudflare and the like), and sites on other platforms, are skipped; the Sources panel says
   how many sites were read and why the rest weren't. Skipped sites are looked at again every few hours.
-- Independent used-car lots aren't listed (there's no directory of their websites); most of them post their cars on the sites above.
+- Other independent used-car lots aren't listed (there's no directory of their websites); most of them post their cars on the
+  sites above.
 - Dealer sites are scanned at most once an hour (`scan_every_minutes`), not every 15 minutes.
 - A dealer site that fails to load keeps its cars on the board for up to 2 days.
 
