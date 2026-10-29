@@ -1,4 +1,4 @@
-"""Temporary probe: find where each brand's dealer locator gets its dealer list."""
+"""Temporary probe #2: find each brand's dealer list (sitemaps, API strings in page code)."""
 import gzip
 import re
 import urllib.error
@@ -9,87 +9,79 @@ import zlib
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 
 
-def get(url, accept="text/html,application/xhtml+xml,*/*;q=0.8", timeout=30):
+def get(url, accept="text/html,application/xhtml+xml,*/*;q=0.8", timeout=25):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": accept, "Accept-Language": "en-CA,en;q=0.9",
                                                "Accept-Encoding": "gzip, deflate"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             body = r.read()
             enc = r.headers.get("Content-Encoding", "")
-            if enc == "gzip":
+            if enc == "gzip" or body[:2] == b"\x1f\x8b":
                 body = gzip.decompress(body)
             elif enc == "deflate":
                 body = zlib.decompress(body)
             return r.status, r.geturl(), r.headers.get("Content-Type", ""), body.decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
-        return e.code, url, e.headers.get("Content-Type", "") if e.headers else "", ""
+        return e.code, url, "", ""
     except Exception as e:
-        return 0, url, type(e).__name__ + ": " + str(e)[:120], ""
+        return 0, url, type(e).__name__ + ": " + str(e)[:100], ""
 
 
-def title(html):
-    m = re.search(r"<title[^>]*>(.*?)</title>", html, re.S | re.I)
-    return re.sub(r"\s+", " ", m.group(1)).strip()[:90] if m else ""
+STR = re.compile(r"""["'`]([^"'`\s<>]{4,220})["'`]""")
+INTEREST = re.compile(r"dealer|retailer|/api/|graphql|\.ashx|/services/|locator", re.I)
+SKIP = re.compile(r"\.(png|jpe?g|svg|css|webp|woff2?|gif|ico)(\?|$)|^kca\.global|^#", re.I)
 
 
-DEALERISH = re.compile(r"""["'`]((?:https?:)?//[^"'`\s]{3,200}|/[^"'`\s]{2,200})["'`]""")
-
-
-def endpoints(text):
-    found = set()
-    for m in DEALERISH.finditer(text):
+def strings_of_interest(text, limit=40):
+    out = []
+    for m in STR.finditer(text):
         s = m.group(1)
-        low = s.lower()
-        if ("dealer" in low or "retailer" in low or "locator" in low) and not low.endswith((".png", ".jpg", ".svg", ".css", ".webp", ".woff2")):
-            found.add(s)
-    return found
+        if INTEREST.search(s) and not SKIP.search(s) and s not in out:
+            out.append(s)
+            if len(out) >= limit:
+                break
+    return out
 
 
-def discover(name, pages):
-    print(f"\n===== {name} =====")
-    for url in pages:
-        status, final, ctype, html = get(url)
-        print(f"{status} {url} -> {final} [{ctype[:40]}] {len(html)}b title={title(html)!r}")
-        if not html:
+def sitemaps(base):
+    status, _, _, robots = get(base + "/robots.txt", accept="text/plain,*/*")
+    maps = re.findall(r"(?im)^sitemap:\s*(\S+)", robots) or [base + "/sitemap.xml"]
+    print(f"  robots.txt {status}; sitemaps: {maps[:6]}")
+    seen, queue, dealer_urls = set(), list(maps), []
+    while queue and len(seen) < 25:
+        url = queue.pop(0)
+        if url in seen:
             continue
-        hrefs = sorted({h for h in re.findall(r'href="([^"]+)"', html) if "dealer" in h.lower()})[:15]
-        if hrefs:
-            print("  dealer hrefs:", hrefs)
-        eps = endpoints(html)
-        if eps:
-            print("  in page:", sorted(eps)[:25])
-        scripts = re.findall(r'<script[^>]+src="([^"]+)"', html)
-        print(f"  {len(scripts)} scripts")
-        seen = set()
-        for src in scripts:
-            full = urllib.parse.urljoin(final, src)
-            if full in seen:
-                continue
-            seen.add(full)
-            s2, _, _, js = get(full, accept="*/*")
-            eps = endpoints(js)
-            if eps:
-                print(f"  in {full[:110]} ({len(js)}b):", sorted(eps)[:20])
-        # inline JSON blobs that mention dealers
-        for m in re.finditer(r'(.{0,80}(?:dealerList|dealers"|"dealerCode|dealerId).{0,200})', html):
-            print("  inline:", m.group(1)[:280].replace("\n", " "))
-            break
-        break_after = status == 200
-        if break_after:
-            break
+        seen.add(url)
+        status, _, _, xml = get(url, accept="application/xml,text/xml,*/*")
+        locs = re.findall(r"<loc>\s*([^<\s]+)\s*</loc>", xml)
+        subs = [l for l in locs if l.endswith(".xml") or "sitemap" in l.lower()]
+        hits = [l for l in locs if re.search(r"dealer|retailer|concession", l, re.I)]
+        print(f"  {status} {url} locs={len(locs)} sub={len(subs)} dealer-ish={len(hits)} {hits[:4]}")
+        dealer_urls += hits
+        queue += [s for s in subs if re.search(r"dealer|retailer|page|en|default|sitemap", s, re.I)][:15]
+    return dealer_urls
 
 
-discover("KIA", ["https://www.kia.ca/en/find-a-dealer", "https://www.kia.ca/en/dealer-locator", "https://www.kia.ca/en"])
-discover("HYUNDAI", ["https://www.hyundaicanada.com/en/find-a-dealer", "https://www.hyundaicanada.com/en/dealer-locator", "https://www.hyundaicanada.com/en"])
-discover("HONDA", ["https://www.honda.ca/en/find-a-dealer", "https://www.honda.ca/en/dealerlocator", "https://www.honda.ca/en/dealer-locator", "https://www.honda.ca/en"])
+def deep(name, base, page):
+    print(f"\n===== {name} =====")
+    dealer_urls = sitemaps(base)
+    print(f"  total dealer-ish sitemap urls: {len(dealer_urls)} sample: {dealer_urls[:8]}")
+    status, final, ctype, html = get(page)
+    print(f"  page {status} {final} {len(html)}b")
+    print("  page strings:", strings_of_interest(html))
+    scripts = list(dict.fromkeys(urllib.parse.urljoin(final, s) for s in re.findall(r'<script[^>]+src="([^"]+)"', html)))
+    print("  scripts:", [s[:100] for s in scripts][:30])
+    for src in scripts:
+        s2, _, _, js = get(src, accept="*/*")
+        found = strings_of_interest(js, 25)
+        if found:
+            print(f"  -- {src[:100]} ({len(js)}b): {found}")
+        # webpack chunk maps: look for chunk file names mentioning dealer
+        for m in re.finditer(r'["\']([^"\']*[Dd]ealer[^"\']*\.js)["\']', js):
+            print("     chunk:", m.group(1)[:120])
 
-print("\n===== AUTO123 directories =====")
-for brand in ("kia", "hyundai", "honda"):
-    url = f"https://www.auto123.com/en/new-cars/dealers/{brand}/ontario/"
-    status, final, ctype, html = get(url)
-    links = re.findall(r'href="([^"]*/dealers/[^"]+)"', html)
-    ext = sorted({h for h in re.findall(r'href="(https?://[^"]+)"', html) if "auto123" not in h})[:12]
-    print(f"{status} {url} {len(html)}b title={title(html)!r} dealer-links={len(set(links))} sample={sorted(set(links))[:5]}")
-    print("  external:", ext)
-    m = re.search(r"(\d+)\s+results", html)
-    print("  results:", m.group(1) if m else None)
+
+deep("HONDA", "https://www.honda.ca", "https://www.honda.ca/en/dealerlocator")
+deep("KIA", "https://www.kia.ca", "https://www.kia.ca/en")
+deep("HYUNDAI", "https://www.hyundaicanada.com", "https://www.hyundaicanada.com/en")
