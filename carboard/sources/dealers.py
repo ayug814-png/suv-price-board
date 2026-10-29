@@ -1,16 +1,18 @@
-"""Ontario Hyundai, Honda and Kia dealers' own websites, where a car is sometimes priced below its listing-site ads.
+"""Ontario car dealers' own websites, where a car is sometimes priced below its listing-site ads.
 
-dealers.json lists the dealers with the website platform each site ran on when the list was made. Each platform has its
-own inventory feed, read by an adapter below. A site that wasn't readable then is looked at again on every run, so a
-dealer that moves platform or drops its bot check gets picked up; sites behind a bot check (Cloudflare, Incapsula) are
-left alone.
+dealers.json lists the dealers of every brand with the website platform each site ran on when the list was made. Each
+platform has its own inventory feed, read by an adapter below. Hyundai, Honda and Kia dealers are searched for new and
+used cars, the rest for used ones. A site that wasn't readable is looked at again every few hours, so a dealer that
+moves platform or drops its bot check gets picked up; sites behind a bot check (Cloudflare, Incapsula) are left alone.
 """
 import base64
 import collections
 import concurrent.futures
 import json
 import re
+import time
 import urllib.parse
+import zlib
 from pathlib import Path
 
 from .. import targets
@@ -25,8 +27,10 @@ YEAR = 2025
 # The models each brand's inventory is searched for, by the names D2C's year/make/model pages use.
 MODELS = {"Hyundai": ["Tucson", "Tucson Hybrid"], "Honda": ["CR-V", "CR-V Hybrid"], "Kia": ["Sportage", "Sportage Hybrid", "Sportage HEV"]}
 WANTED = re.compile(r"\b(?:tucson|cr[ -]?v|sportage)\b")
+NEW_CAR_BRANDS = {"Hyundai", "Honda", "Kia"}  # only their dealers have the six cars new
 BOT_CHECK = re.compile(r"<title>just a moment|attention required! \| cloudflare|_incapsula_resource|cf-chl-", re.I)
-WORKERS = 8
+RECHECK_GROUPS = 6  # sites that weren't readable are retried in turn, one group per hourly dealer scan
+WORKERS = 16
 
 
 def fetch(log):
@@ -46,9 +50,9 @@ def fetch(log):
             incomplete.add(_key(dealer))
     log.info("dealers: %s, %d listings", dict(outcome), len(found))
 
-    notes = [f"Read {outcome['read']} of {len(dealers)} Ontario Hyundai, Honda and Kia dealer sites"]
+    notes = [f"Read {outcome['read']} of {len(dealers)} Ontario dealer sites"]
     skipped = [f"{outcome[k]} {why}" for k, why in (("blocked", "block automated visits"), ("other", "run website software this board can't read yet"),
-                                                    ("down", "didn't load"), ("no website", "have no known website")) if outcome[k]]
+                                                    ("down", "didn't load"), ("unknown", "have no known website")) if outcome[k]]
     if skipped:
         notes.append("Not read: " + ", ".join(skipped))
     if problems:
@@ -61,7 +65,9 @@ def fetch(log):
 def _scan(dealer):
     """One dealer site: (listings, the platform it was read as or why it wasn't read, problem, requests made)."""
     if not dealer["website"]:
-        return [], "no website", None, 0
+        return [], "unknown", None, 0
+    if dealer["platform"] not in ADAPTERS and not _recheck_now(dealer):
+        return [], dealer["platform"] or "unknown", None, 0
     http = Fetcher(min_gap=1.0, jitter=1.0, retries=0)
     platform = dealer["platform"] if dealer["platform"] in ADAPTERS else _detect(http, dealer)
     if platform not in ADAPTERS:
@@ -79,6 +85,15 @@ def _scan(dealer):
         except (FetchError, ValueError, KeyError, TypeError) as e:
             problem = str(e) if isinstance(e, FetchError) else f"{type(e).__name__}: {e}"
     return [], platform, problem[:140], http.requests
+
+
+def _recheck_now(dealer):
+    """Whether this hour's dealer scan should look at a site that wasn't readable before."""
+    return zlib.crc32(dealer["website"].encode()) % RECHECK_GROUPS == time.gmtime().tm_hour % RECHECK_GROUPS
+
+
+def _sells_new(dealer):
+    return bool(NEW_CAR_BRANDS & set(dealer["brands"]))
 
 
 def _detect(http, dealer):
@@ -153,7 +168,7 @@ D2C_STATE = re.compile(r'id="filterState" value="([^"]+)"')
 def _d2c(http, dealer):
     base = _base(dealer)
     cards = {}
-    for root in ("/used", "/new/inventory"):
+    for root in ("/used", "/new/inventory") if _sells_new(dealer) else ("/used",):
         for card in _d2c_cards(http, base, root):
             cards[card["vin"]] = card
     listings = [_listing(dealer, c["vin"], **{k: v for k, v in c.items() if k != "vin"}) for c in cards.values()]
@@ -226,9 +241,10 @@ def _d2c_description(http, url):
 
 def _sm360(http, dealer):
     base = _base(dealer)
+    inventory = "all-inventory" if _sells_new(dealer) else "used-inventory"
     listings, page, pages = [], 1, 1
     while page <= pages:
-        data = json.loads(http.get(f"{base}/en/all-inventory/api/listing?year={YEAR}&limit=100&page={page}", accept="application/json"))
+        data = json.loads(http.get(f"{base}/en/{inventory}/api/listing?year={YEAR}&limit=100&page={page}", accept="application/json"))
         pages = (data.get("pagination") or {}).get("numberOfPages") or 1
         listings += filter(None, (_sm360_listing(dealer, base, v) for v in data.get("vehicles") or []))
         page += 1
@@ -270,7 +286,7 @@ def _convertus(http, dealer):
     relay = f"{plugins}/convertus-vms/include/php/ajax-vehicles.php"
     results, page = [], 1
     while True:
-        endpoint = f"{api}filtering/?cp={vms_id}&ln=en&yr={YEAR},{YEAR}&pc=100&pg={page}"
+        endpoint = f"{api}filtering/?cp={vms_id}&ln=en&yr={YEAR},{YEAR}&pc=100&pg={page}" + ("" if _sells_new(dealer) else "&sc=used")
         data = json.loads(http.get(f"{relay}?endpoint={urllib.parse.quote(endpoint, safe='')}&action=vms_data", accept="application/json, */*"))
         batch = data.get("results") or []
         results += batch

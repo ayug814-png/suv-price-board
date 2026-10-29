@@ -17,15 +17,20 @@ lowest price, with a link per site (AT = AutoTrader.ca, CG = CarGurus.ca, KJ = K
 ## Dealer websites (DLR)
 
 Dealers sometimes price a car lower on their own website than in their AutoTrader or Kijiji ad, so the board also reads the
-inventory on the websites of every Ontario Hyundai, Honda and Kia dealer: new, demo and used 2025s of all six cars, whatever brand
-the dealer sells. A DLR link's tooltip names the dealer.
+inventory on the websites of Ontario's new-car dealers of every brand: new, demo and used 2025s of the six cars at Hyundai, Honda
+and Kia dealers, and used ones at every other dealer (a Subaru or Toyota dealer with a traded-in Tucson, say). A DLR link's tooltip
+names the dealer.
 
-- The dealers are listed in `carboard/dealers.json`: Kia's and Hyundai's from the brands' own dealer locators, Honda's from Auto123's
-  directory with each dealer's website found from its name (a few weren't found). To add or fix one, edit its line; leave `platform`
-  empty and the scan works it out.
+- The dealers are listed in `carboard/dealers.json`: Kia's and Hyundai's from the brands' own dealer locators, the other brands'
+  from Auto123's dealer directory, plus every Ontario dealer (independents included) that was advertising a 2025 Tucson, CR-V or
+  Sportage on AutoTrader when the list was built. Each website was found from the dealer's email or name and checked against its
+  phone number, or its name and city; dealers whose website couldn't be found were left out. To add or fix one, edit its line;
+  leave `platform` empty and the scan works it out.
 - Dealer sites run on a handful of website platforms. The board reads the three most common in Ontario (D2C Media, SM360 and
   Convertus). Sites behind a bot check (Cloudflare and the like), and sites on other platforms, are skipped; the Sources panel says
-  how many sites were read and why the rest weren't. Skipped sites are looked at again on every dealer scan.
+  how many sites were read and why the rest weren't. Skipped sites are looked at again every few hours.
+- Other independent used-car lots aren't listed (there's no directory of their websites); most of them post their cars on the
+  sites above.
 - Dealer sites are scanned at most once an hour (`scan_every_minutes`), not every 15 minutes.
 - A dealer site that fails to load keeps its cars on the board for up to 2 days.
 
@@ -87,5 +92,5 @@ Everything runs in the cloud; no PC needs to be on.
 - `data/state.json`: listing history (first seen, price changes). `data/geocache.json`: city coordinates.
 - `logs/run.log`: what each run did, including any site that failed.
 
-Sites not covered: Facebook Marketplace (needs a login), Clutch.ca and dealers outside Ontario's Hyundai, Honda and Kia dealers (their
-cars are syndicated to the sites above), Canada Drives (no longer lists its own inventory).
+Sites not covered: Facebook Marketplace (needs a login), Clutch.ca, websites of dealers outside Ontario and of independent used-car
+lots (their cars are syndicated to the sites above), Canada Drives (no longer lists its own inventory).
