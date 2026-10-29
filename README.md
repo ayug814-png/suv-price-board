@@ -11,8 +11,23 @@ A live board of every Canadian listing for six 2025 SUVs, refreshed every 15 min
 | Sportage EX w/ Panoramic Sunroof (gas) | EX trim, gas engine, with proof of the sunroof: roof wording in the title or "panoramic sunroof" in the description (a plain "sunroof" in the description or a ticked sunroof box shows as likely (?)). Not EX Premium, X-Line or the hybrids; an EX whose ad doesn't state the fuel counts as gas unless it mentions a hybrid |
 | Sportage EX Hybrid w/ Panoramic Sunroof | EX trim, hybrid (not the plug-in, EX Premium or SX), with the same proof of the sunroof |
 
-Rows are cities, cells are prices, and every price links to the original ad. The same car posted on several sites shows once with
-a link per site (AT = AutoTrader.ca, CG = CarGurus.ca, KJ = Kijiji, CP = Carpages.ca).
+Rows are cities, cells are prices, and every price links to the original ad. The same car posted on several sites shows once, at its
+lowest price, with a link per site (AT = AutoTrader.ca, CG = CarGurus.ca, KJ = Kijiji, CP = Carpages.ca, DLR = the dealer's own website).
+
+## Dealer websites (DLR)
+
+Dealers sometimes price a car lower on their own website than in their AutoTrader or Kijiji ad, so the board also reads the
+inventory on the websites of every Ontario Hyundai, Honda and Kia dealer: new, demo and used 2025s of all six cars, whatever brand
+the dealer sells. A DLR link's tooltip names the dealer.
+
+- The dealers are listed in `carboard/dealers.json`: Kia's and Hyundai's from the brands' own dealer locators, Honda's from Auto123's
+  directory with each dealer's website found from its name (a few weren't found). To add or fix one, edit its line; leave `platform`
+  empty and the scan works it out.
+- Dealer sites run on a handful of website platforms. The board reads the three most common in Ontario (D2C Media, SM360 and
+  Convertus). Sites behind a bot check (Cloudflare and the like), and sites on other platforms, are skipped; the Sources panel says
+  how many sites were read and why the rest weren't. Skipped sites are looked at again on every dealer scan.
+- Dealer sites are scanned at most once an hour (`scan_every_minutes`), not every 15 minutes.
+- A dealer site that fails to load keeps its cars on the board for up to 2 days.
 
 ## Website (password-protected, runs 24/7)
 
@@ -63,13 +78,14 @@ Everything runs in the cloud; no PC needs to be on.
 - `price_floor` / `price_ceiling`: prices outside this range are treated as "no price" (placeholders like $1, payment-only ads).
 - `remove_after_missed_runs`: how many complete scans in a row must miss an ad before it leaves the board.
 - `sources`: switch individual sites off.
+- `scan_every_minutes`: scan a source less often than every run, e.g. `{"dealers": 60}` reads the dealer websites at most hourly.
 
 ## Files
 
 - `run.py`: one refresh (scan, match, update history, write `board.html`).
-- `carboard/sources/`: one module per site. `carboard/targets.py`: the matching rules.
+- `carboard/sources/`: one module per site. `carboard/targets.py`: the matching rules. `carboard/dealers.json`: the Ontario dealers.
 - `data/state.json`: listing history (first seen, price changes). `data/geocache.json`: city coordinates.
 - `logs/run.log`: what each run did, including any site that failed.
 
-Sites not covered: Facebook Marketplace (needs a login), Clutch.ca and dealer websites (their cars are syndicated to the sites above),
-Canada Drives (no longer lists its own inventory).
+Sites not covered: Facebook Marketplace (needs a login), Clutch.ca and dealers outside Ontario's Hyundai, Honda and Kia dealers (their
+cars are syndicated to the sites above), Canada Drives (no longer lists its own inventory).

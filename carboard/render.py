@@ -63,8 +63,15 @@ def _vehicle(members, now, new_hours):
         "ch": change,
         "ca": changed_at,
         "fs": first_seen,
-        "links": [[SOURCES[m["source"]].SHORT, m["url"], SOURCES[m["source"]].NAME] for m in members],
+        "links": [_link(m) for m in members],
     }
+
+
+def _link(record):
+    """[tag, url, where it opens]. Every dealer website shares the DLR tag; its tooltip names the dealer."""
+    module = SOURCES[record["source"]]
+    where = f"{record['dealer']}'s website" if record["source"] == "dealers" and record["dealer"] else module.NAME
+    return [module.SHORT, record["url"], where]
 
 
 def build(store, geo, config, run):
@@ -108,7 +115,7 @@ def build(store, geo, config, run):
             "key": key, "name": module.NAME, "short": module.SHORT,
             "ok": bool(status) and not status.get("errors"),
             "matched": status.get("matched", 0), "scanned": status.get("scanned", 0),
-            "lastOk": status.get("last_ok"), "errors": status.get("errors", []),
+            "lastOk": status.get("last_ok"), "errors": status.get("errors", []), "notes": status.get("notes", []),
         })
 
     return {

@@ -63,14 +63,16 @@ def run(config, args):
         return
     started = time.monotonic()
     now = utc_now()
+    store = Store(DATA / "state.json")
     enabled = [name for name, on in config["sources"].items() if on and name in SOURCES]
     if args.sources:
         enabled = [name for name in args.sources.split(",") if name in enabled]
+    else:
+        enabled = [name for name in enabled if _due(store.sources.get(name, {}), config.get("scan_every_minutes", {}).get(name), now)]
     with concurrent.futures.ThreadPoolExecutor(max_workers=len(enabled) or 1) as pool:
         futures = {name: pool.submit(_scan, name) for name in enabled}
         results = {name: future.result() for name, future in futures.items()}
 
-    store = Store(DATA / "state.json")
     geo = Geo(DATA / "geocache.json")
     floor, ceiling = config["price_floor"], config["price_ceiling"]
     dump = []
@@ -124,6 +126,15 @@ def _load_config():
         city, _, province = os.environ["BOARD_HOME"].rpartition(",")
         config["home"] = {"city": city.strip(), "province": province.strip(), "label": os.environ["BOARD_HOME"].strip()}
     return config
+
+
+def _due(status, every, now):
+    """A source with its own interval in scan_every_minutes (the dealer websites) is only scanned once that has
+    passed since its last scan, give or take a few minutes of scheduling delay."""
+    if not every or "last_run" not in status:
+        return True
+    elapsed = datetime.datetime.fromisoformat(now.replace("Z", "+00:00")) - datetime.datetime.fromisoformat(status["last_run"].replace("Z", "+00:00"))
+    return elapsed >= datetime.timedelta(minutes=every - 5)
 
 
 def _scan(name):

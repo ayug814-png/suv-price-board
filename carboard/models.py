@@ -45,3 +45,7 @@ class SourceResult:
     listings: list[Listing]
     errors: list[str]
     requests: int
+    # A source made of many sites (the dealer websites) reports the sites it couldn't read as source_id prefixes:
+    # their listings aren't counted as missed, and the rest of the scan still counts as complete.
+    incomplete: set[str] = field(default_factory=set)
+    notes: list[str] = field(default_factory=list)  # shown with the source's status, without marking it as failed

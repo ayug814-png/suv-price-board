@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 KEEP_GONE_FOR = datetime.timedelta(days=7)
+KEEP_UNREAD_FOR = datetime.timedelta(days=2)  # a dealer site that keeps failing stops vouching for its cars
 
 
 def utc_now():
@@ -33,7 +34,8 @@ class Store:
         """Fold one source's scan into the history.
 
         A listing only counts as gone after `remove_after` complete scans of its site in a row miss it,
-        so a scan that failed part-way never wipes listings off the board.
+        so a scan that failed part-way never wipes listings off the board. For a source made of many sites, a site
+        that couldn't be read (result.incomplete) keeps its listings for up to KEEP_UNREAD_FOR.
         """
         status = self.sources.setdefault(source, {})
         # Whatever a site's first scan (or a newly added column's first scan) finds is the starting
@@ -41,7 +43,7 @@ class Store:
         scanned_targets = set(status.get("targets", [])) if "first_ok" in status else set()
         complete = not result.errors
         status.update(last_run=now, scanned=len(result.listings), matched=len(matched),
-                      requests=result.requests, errors=result.errors[:3])
+                      requests=result.requests, errors=result.errors[:3], notes=result.notes)
         if complete:
             status.setdefault("first_ok", now)
             status["last_ok"] = now
@@ -67,8 +69,13 @@ class Store:
             seen.add(listing.key)
 
         if complete:
+            unread = tuple(f"{part}:" for part in result.incomplete)
+            unread_cutoff = (datetime.datetime.fromisoformat(now.replace("Z", "+00:00"))
+                             - KEEP_UNREAD_FOR).isoformat().replace("+00:00", "Z")
             for key, record in list(self.listings.items()):
                 if record["source"] == source and key not in seen:
+                    if record["source_id"].startswith(unread) and record["last_seen"] >= unread_cutoff:
+                        continue
                     record["missed"] = record.get("missed", 0) + 1
                     if record["missed"] >= remove_after:
                         gone[key] = {k: record[k] for k in ("first_seen", "baseline", "price_history")} | {"gone_at": now}
