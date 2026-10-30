@@ -1,6 +1,6 @@
 # SUV Price Board
 
-A live board of every Canadian listing for six 2025 SUVs, refreshed every 15 minutes:
+A live board of every Canadian listing for eight SUVs (six 2025 models and two 2026 Kona trims), refreshed every 15 minutes:
 
 | Column | What counts |
 | --- | --- |
@@ -10,6 +10,8 @@ A live board of every Canadian listing for six 2025 SUVs, refreshed every 15 min
 | CR-V Sport (gas) | Sport trim, gas engine (not Sport Hybrid / Sport Touring) |
 | Sportage EX w/ Panoramic Sunroof (gas) | EX trim, gas engine, with proof of the sunroof: roof wording in the title or "panoramic sunroof" in the description (a plain "sunroof" in the description or a ticked sunroof box shows as likely (?)). Not EX Premium, X-Line or the hybrids; an EX whose ad doesn't state the fuel counts as gas unless it mentions a hybrid |
 | Sportage EX Hybrid w/ Panoramic Sunroof | EX trim, hybrid (not the plug-in, EX Premium or SX), with the same proof of the sunroof |
+| 2026 Kona Preferred w/ Sunroof | Preferred trim (gas) with proof of the sunroof, which on the Preferred only comes with the Trend package: "Trend" in the title or description, sunroof wording in the title, or a Preferred-with-Trend VIN (KM8HC…). A plain "sunroof" in the description or a ticked sunroof box shows as likely (?). Kona Electric is left out |
+| 2026 Kona N Line Ultimate w/ Sunroof | N Line with the Ultimate package, named in the ad or shown by its VIN (KM8HE…); the sunroof is standard on it. A plain N Line is left out |
 
 Rows are cities, cells are prices, and every price links to the original ad. The same car posted on several sites shows once, at its
 lowest price, with a link per site (AT = AutoTrader.ca, CG = CarGurus.ca, KJ = Kijiji, CP = Carpages.ca, DLR = the dealer's own website).
@@ -17,8 +19,8 @@ lowest price, with a link per site (AT = AutoTrader.ca, CG = CarGurus.ca, KJ = K
 ## Dealer websites (DLR)
 
 Dealers sometimes price a car lower on their own website than in their AutoTrader or Kijiji ad, so the board also reads the
-inventory on the websites of Ontario's new-car dealers of every brand: new, demo and used 2025s of the six cars at Hyundai, Honda
-and Kia dealers, and used ones at every other dealer (a Subaru or Toyota dealer with a traded-in Tucson, say). A DLR link's tooltip
+inventory on the websites of Ontario's new-car dealers of every brand: the board's cars new, demo and used at dealers of their
+make, and used at every other dealer (a Subaru or Toyota dealer with a traded-in Tucson, say). A DLR link's tooltip
 names the dealer.
 
 - The dealers are listed in `carboard/dealers.json`: Kia's and Hyundai's from the brands' own dealer locators, the other brands'

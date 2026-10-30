@@ -13,15 +13,16 @@ from ..util import tidy_city, to_int
 
 NAME = "CarGurus.ca"
 SHORT = "CG"
-BASE = "https://www.cargurus.ca/Cars/l-Used-{slug}?distance=50000&startYear=2025&endYear=2025"
+BASE = "https://www.cargurus.ca/Cars/l-Used-{slug}?distance=50000&startYear={year}&endYear={year}"
 ROUTE = "_data=" + urllib.parse.quote("routes/($intl).Cars.$seoPath", safe="")
-SEARCHES = [  # (model slug, which of CarGurus' trim names to page through)
-    ("Hyundai-Tucson-d98", r"preferred|trend|sel convenience"),
-    ("Hyundai-Tucson-Hybrid-d3141", r"n line|sel convenience"),
-    ("Honda-CR-V-d589", r"^sport\b(?!.*touring)"),
-    ("Honda-CR-V-Hybrid-d3002", r"\bex-?l\b"),
-    ("Kia-Sportage-d164", r"^ex\b(?!.*prem)"),
-    ("Kia-Sportage-Hybrid-d3239", r"^ex\b(?!.*prem)"),
+SEARCHES = [  # (model slug, model year, which of CarGurus' trim names to page through)
+    ("Hyundai-Tucson-d98", 2025, r"preferred|trend|sel convenience"),
+    ("Hyundai-Tucson-Hybrid-d3141", 2025, r"n line|sel convenience"),
+    ("Honda-CR-V-d589", 2025, r"^sport\b(?!.*touring)"),
+    ("Honda-CR-V-Hybrid-d3002", 2025, r"\bex-?l\b"),
+    ("Kia-Sportage-d164", 2025, r"^ex\b(?!.*prem)"),
+    ("Kia-Sportage-Hybrid-d3239", 2025, r"^ex\b(?!.*prem)"),
+    ("Hyundai-Kona-d2663", 2026, r"preferred|trend|n line|ultimate"),
 ]
 MAX_PAGES = 20
 PAGE_SIZE = 24
@@ -31,8 +32,8 @@ FUELS = {"Gasoline": "gas", "Hybrid": "hybrid", "Plug-In Hybrid": "phev", "Elect
 def fetch(log):
     http = Fetcher(min_gap=3.0, jitter=2.0)
     found, errors = {}, []
-    for slug, trim_filter in SEARCHES:
-        base = BASE.format(slug=slug)
+    for slug, year, trim_filter in SEARCHES:
+        base = BASE.format(slug=slug, year=year)
         try:
             first = _search(http, base)
         except FetchError as e:
@@ -57,7 +58,7 @@ def fetch(log):
                 for listing in filter(None, map(_listing, search.get("tiles") or [])):
                     found[listing.source_id] = listing
                 page += 1
-        log.info("cargurus %s: trims %s", slug, trim_paths)
+        log.info("cargurus %s %d: trims %s", slug, year, trim_paths)
     return SourceResult(list(found.values()), errors, http.requests)
 
 

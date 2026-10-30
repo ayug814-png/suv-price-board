@@ -8,8 +8,8 @@ from ..util import strip_html, tidy_city, to_int
 
 NAME = "AutoTrader.ca"
 SHORT = "AT"
-SEARCHES = [("hyundai", "tucson"), ("honda", "cr-v"), ("kia", "sportage")]
-URL = "https://www.autotrader.ca/cars/{make}/{model}/my_2025?size=100&page={page}&{order}"
+SEARCHES = [("hyundai", "tucson", 2025), ("honda", "cr-v", 2025), ("kia", "sportage", 2025), ("hyundai", "kona", 2026)]
+URL = "https://www.autotrader.ca/cars/{make}/{model}/my_{year}?size=100&page={page}&{order}"
 # The default order reshuffles promoted ads between page loads, so a few can slip past a crawl. Crawl newest
 # first, and if that still comes up short of the site's own total, make a second pass in price order.
 ORDERS = ["sort=age&desc=1", "sort=price&desc=0"]
@@ -26,13 +26,13 @@ CONDITIONS = {"U": "used", "N": "new", "D": "demo", "J": "used", "S": "new"}
 def fetch(log):
     http = Fetcher(min_gap=2.0)
     found, errors = {}, []
-    for make, model in SEARCHES:
+    for make, model, year in SEARCHES:
         seen, total, failures = set(), 0, len(errors)
         for order in ORDERS:
             page, pages = 1, 1
             while page <= min(pages, MAX_PAGES):
                 try:
-                    items, pages, total = _search_page(http, make, model, page, order)
+                    items, pages, total = _search_page(http, make, model, year, page, order)
                 except FetchError as e:
                     errors.append(str(e))
                     break
@@ -42,15 +42,15 @@ def fetch(log):
                 page += 1
             if len(errors) > failures or len(seen) >= total:
                 break
-        log.info("autotrader %s %s: %d of %d ads", make, model, len(seen), total)
+        log.info("autotrader %s %s %d: %d of %d ads", make, model, year, len(seen), total)
     return SourceResult(list(found.values()), errors, http.requests)
 
 
-def _search_page(http, make, model, page, order):
-    html = http.get(URL.format(make=make, model=model, page=page, order=order))
+def _search_page(http, make, model, year, page, order):
+    html = http.get(URL.format(make=make, model=model, year=year, page=page, order=order))
     m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', html, re.S)
     if not m:
-        raise FetchError(f"no results data on {make} {model} page {page} (layout change or bot check)")
+        raise FetchError(f"no results data on {year} {make} {model} page {page} (layout change or bot check)")
     props = json.loads(m.group(1))["props"]["pageProps"]
     return props.get("listings") or [], props.get("numberOfPages") or 1, props.get("numberOfResults") or 0
 

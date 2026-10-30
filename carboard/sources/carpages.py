@@ -11,8 +11,8 @@ from ..util import province_code, tidy_city, to_int
 
 NAME = "Carpages.ca"
 SHORT = "CP"
-SEARCHES = [("Hyundai", "Tucson"), ("Honda", "CR-V"), ("Kia", "Sportage")]
-URL = "https://www.carpages.ca/used-cars/search/?make_name={make}&model_name={model}&year_start=2025&year_end=2025&page={page}"
+SEARCHES = [("Hyundai", "Tucson", 2025), ("Honda", "CR-V", 2025), ("Kia", "Sportage", 2025), ("Hyundai", "Kona", 2026)]
+URL = "https://www.carpages.ca/used-cars/search/?make_name={make}&model_name={model}&year_start={year}&year_end={year}&page={page}"
 PAGE_SIZE = 50
 MAX_PAGES = 10
 LISTING_URL = re.compile(r"carpages\.ca/(used|new)-cars/([^/]+)/([^/]+)/(\d{4})-[^/]*?-(\d+)/?$")
@@ -23,13 +23,13 @@ KM = re.compile(r'((?:<span class="number">[\d,]</span>)+)\s*<span>K</span>\s*<s
 def fetch(log):
     http = Fetcher(min_gap=5.0, jitter=3.0)
     found, errors = {}, []
-    for make, model in SEARCHES:
+    for make, model, year in SEARCHES:
         page = 1
         while page <= MAX_PAGES:
             try:
-                html = http.get(URL.format(make=make, model=model, page=page))
+                html = http.get(URL.format(make=make, model=model, year=year, page=page))
                 if "bunny-shield" in html[:3000]:
-                    raise FetchError(f"bot check on {make} {model} page {page}")
+                    raise FetchError(f"bot check on {year} {make} {model} page {page}")
             except FetchError as e:
                 errors.append(str(e))
                 break
@@ -44,7 +44,7 @@ def fetch(log):
             if not new or page * PAGE_SIZE >= total:
                 break
             page += 1
-        log.info("carpages %s %s: %d pages", make, model, page)
+        log.info("carpages %d %s %s: %d pages", year, make, model, page)
     return SourceResult(list(found.values()), errors, http.requests)
 
 

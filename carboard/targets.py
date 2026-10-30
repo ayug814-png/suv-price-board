@@ -1,4 +1,4 @@
-"""The six cars on the board and the rules that decide which listings belong in each column."""
+"""The cars on the board and the rules that decide which listings belong in each column."""
 import dataclasses
 import re
 
@@ -57,6 +57,25 @@ TARGETS = [
         "rule": "Sportage Hybrid (not plug-in) in EX trim with proof of the panoramic sunroof, judged the same way as "
                 "the gas EX. EX Premium and SX hybrids are left out.",
     },
+    {
+        "key": "kona_pref_sunroof",
+        "name": "Kona Preferred",
+        "detail": "2026 · w/ Sunroof (Trend)",
+        "label": "2026 Hyundai Kona Preferred w/ Sunroof",
+        "rule": "2026 Kona (gas) in Preferred trim with proof of the sunroof, which on the Preferred only comes with the "
+                "Trend package: 'Trend' in the title or description, sunroof wording in the title, or a VIN in the "
+                "Preferred-with-Trend series (KM8HC…). A plain 'sunroof' in the description or a ticked sunroof box makes "
+                "it a likely match (?). 'Panoramic' alone doesn't count: Hyundai also calls the Kona's screens a panoramic "
+                "display. Kona Electric is left out.",
+    },
+    {
+        "key": "kona_nline_ult",
+        "name": "Kona N Line Ultimate",
+        "detail": "2026 · Sunroof standard",
+        "label": "2026 Hyundai Kona N Line Ultimate w/ Sunroof",
+        "rule": "2026 Kona N Line with the Ultimate package, named in the title or trim or shown by a VIN in the N Line "
+                "Ultimate series (KM8HE…); the sunroof is standard on it. A plain N Line (no Ultimate package) is left out.",
+    },
 ]
 
 # (pattern, trim). A longer match swallows shorter ones inside it, so 'Sport Touring' isn't also 'Sport'
@@ -93,6 +112,21 @@ SPORTAGE_TRIMS = [
     (r"\blx\b", "lx"),
     (r"\bex\b", "ex"),
 ]
+
+# Canada's 2026 Kona trims; the Ultimate package is checked separately, so 'N Line Ultimate' reads as the N Line.
+KONA_TRIMS = [
+    (r"\bpreferred\b|\bprivilegie\b", "preferred"),
+    (r"\bessential\b|\bessentiel\b", "essential"),
+    (r"\bn[ -]?line", "n line"),
+]
+ULTIMATE = re.compile(r"\bultimate\b|\bult\b")
+
+
+def _kona_vin_series(vin):
+    """Character 5 of a 2026 Kona VIN is the trim series: A = Essential or N Line, B = Preferred, C = Preferred with
+    Trend, E = N Line with Ultimate (checked against 112 dealer ads that name their trim)."""
+    vin = (vin or "").upper()
+    return vin[4] if len(vin) == 17 and vin.startswith("KM8H") else ""
 
 # 'Trend' package, its French name, or Hyundai Canada's model code for it (TUCWDK2EPRTR vs. base TUCWDK2EPR00).
 TREND = re.compile(r"\btrend\b|\btendance\b|\btuc[a-z0-9]{5,}prtr\b")
@@ -135,11 +169,13 @@ def _tucson_vin_series(vin):
 
 
 def classify(listing):
-    """Return (target key, 'confirmed' | 'likely', evidence) or None if the listing isn't one of the six cars."""
-    if listing.year != 2025:
-        return None
+    """Return (target key, 'confirmed' | 'likely', evidence) or None if the listing isn't one of the board's cars."""
     ident = norm(f"{listing.title} {listing.trim}")
     family = norm(f"{listing.make} {listing.model} {listing.title}")
+    if "hyundai" in family and re.search(r"\bkona\b", family):
+        return _kona(listing, ident) if listing.year == 2026 else None
+    if listing.year != 2025:
+        return None
     if "hyundai" in family and "tucson" in family:
         return _tucson(listing, ident)
     if "honda" in family and re.search(r"\bcr[ -]?v\b", family):
@@ -258,6 +294,49 @@ def _sportage(listing, ident):
         weak.append("sunroof ticked in the listing's feature list")
     if weak:
         return target, "likely", "; ".join([trim] + weak)
+    return None
+
+
+def _kona(listing, ident):
+    electric = re.search(r"\belectri(?:c|que)\b|\bev\b", f"{norm(listing.model)} {ident}")
+    if electric or _powertrain(listing, ident) not in ("gas", ""):
+        return None  # Kona Electric, even when the ad doesn't set its fuel
+    site_trim = norm(listing.site_trim)
+    trims = _trims(ident, KONA_TRIMS) or _trims(site_trim, KONA_TRIMS)
+    trim = trims[0] if trims else ""
+    series = _kona_vin_series(listing.vin)
+    if trim == "n line" or (trim == "" and series == "E"):
+        if ULTIMATE.search(ident) or ULTIMATE.search(site_trim):
+            return "kona_nline_ult", "confirmed", "N Line with the Ultimate package (sunroof standard)"
+        if series == "E":
+            return "kona_nline_ult", "confirmed", "VIN is in the N Line Ultimate series (sunroof standard)"
+        return None
+    if trim != "preferred" and not (trim == "" and series == "C"):
+        return None
+
+    # Only the Trend package brings a sunroof to the Preferred, so naming either is proof.
+    text = norm(listing.text)
+    strong = []
+    for where, haystack in (("title", ident), ("trim", site_trim), ("description", text)):
+        m = TREND.search(haystack)
+        if m:
+            strong.append(f"'{m.group(0)}' in {where}")
+    m = ROOF_IN_TEXT.search(ident)
+    if m:
+        strong.append(f"'{m.group(0)}' in title")
+    if series == "C":
+        strong.append("VIN is in the Preferred-with-Trend series")
+    if strong:
+        return "kona_pref_sunroof", "confirmed", "; ".join(dict.fromkeys(strong))
+
+    weak = []
+    m = ROOF_IN_TEXT.search(text)
+    if m:
+        weak.append(f"'{m.group(0)}' in description")
+    if "sunroof" in listing.features:
+        weak.append("sunroof ticked in the listing's feature list")
+    if weak:
+        return "kona_pref_sunroof", "likely", "; ".join(weak)
     return None
 
 
