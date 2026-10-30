@@ -69,12 +69,20 @@ TARGETS = [
                 "display. Kona Electric is left out.",
     },
     {
+        "key": "kona_nline",
+        "name": "Kona N Line",
+        "detail": "2026 · Sunroof standard",
+        "label": "2026 Hyundai Kona N Line",
+        "rule": "2026 Kona N Line without the Ultimate package (those have their own column), named in the title or trim "
+                "or shown by a VIN in the N Line series (KM8HA… with the 1.6L turbo); the sunroof is standard on it.",
+    },
+    {
         "key": "kona_nline_ult",
         "name": "Kona N Line Ultimate",
         "detail": "2026 · Sunroof standard",
         "label": "2026 Hyundai Kona N Line Ultimate w/ Sunroof",
         "rule": "2026 Kona N Line with the Ultimate package, named in the title or trim or shown by a VIN in the N Line "
-                "Ultimate series (KM8HE…); the sunroof is standard on it. A plain N Line (no Ultimate package) is left out.",
+                "Ultimate series (KM8HE…); the sunroof is standard on it. A plain N Line goes in the Kona N Line column.",
     },
 ]
 
@@ -122,11 +130,16 @@ KONA_TRIMS = [
 ULTIMATE = re.compile(r"\bultimate\b|\bult\b")
 
 
-def _kona_vin_series(vin):
-    """Character 5 of a 2026 Kona VIN is the trim series: A = Essential or N Line, B = Preferred, C = Preferred with
-    Trend, E = N Line with Ultimate (checked against 112 dealer ads that name their trim)."""
+def _kona_vin_trim(vin):
+    """The trim a 2026 Kona's VIN encodes (checked against 112 dealer ads that name their trim): character 5 is the
+    trim series (A = Essential or N Line, B = Preferred, C = Preferred with Trend, E = N Line with Ultimate) and
+    character 8 the engine (3 = the N Line's 1.6L turbo)."""
     vin = (vin or "").upper()
-    return vin[4] if len(vin) == 17 and vin.startswith("KM8H") else ""
+    if len(vin) != 17 or not vin.startswith("KM8H"):
+        return ""
+    if vin[4] == "A":
+        return "n line" if vin[7] == "3" else "essential"
+    return {"B": "preferred", "C": "preferred trend", "E": "n line ultimate"}.get(vin[4], "")
 
 # 'Trend' package, its French name, or Hyundai Canada's model code for it (TUCWDK2EPRTR vs. base TUCWDK2EPR00).
 TREND = re.compile(r"\btrend\b|\btendance\b|\btuc[a-z0-9]{5,}prtr\b")
@@ -304,14 +317,14 @@ def _kona(listing, ident):
     site_trim = norm(listing.site_trim)
     trims = _trims(ident, KONA_TRIMS) or _trims(site_trim, KONA_TRIMS)
     trim = trims[0] if trims else ""
-    series = _kona_vin_series(listing.vin)
-    if trim == "n line" or (trim == "" and series == "E"):
+    vin_trim = _kona_vin_trim(listing.vin)
+    if trim == "n line" or (trim == "" and vin_trim.startswith("n line")):
         if ULTIMATE.search(ident) or ULTIMATE.search(site_trim):
             return "kona_nline_ult", "confirmed", "N Line with the Ultimate package (sunroof standard)"
-        if series == "E":
+        if vin_trim == "n line ultimate":
             return "kona_nline_ult", "confirmed", "VIN is in the N Line Ultimate series (sunroof standard)"
-        return None
-    if trim != "preferred" and not (trim == "" and series == "C"):
+        return "kona_nline", "confirmed", "N Line (sunroof standard)" if trim else "VIN is in the N Line series (sunroof standard)"
+    if trim != "preferred" and not (trim == "" and vin_trim == "preferred trend"):
         return None
 
     # Only the Trend package brings a sunroof to the Preferred, so naming either is proof.
@@ -324,7 +337,7 @@ def _kona(listing, ident):
     m = ROOF_IN_TEXT.search(ident)
     if m:
         strong.append(f"'{m.group(0)}' in title")
-    if series == "C":
+    if vin_trim == "preferred trend":
         strong.append("VIN is in the Preferred-with-Trend series")
     if strong:
         return "kona_pref_sunroof", "confirmed", "; ".join(dict.fromkeys(strong))
