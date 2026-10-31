@@ -1,6 +1,6 @@
 # SUV Price Board
 
-A live board of every Canadian listing for six SUVs (2025 Tucsons and CR-Vs, and 2026 CR-Vs), refreshed every 15 minutes:
+A live board of every Canadian listing for seven SUVs (2025 Tucsons and CR-Vs, and 2026 CR-Vs), refreshed every 15 minutes:
 
 | Column | What counts |
 | --- | --- |
@@ -10,6 +10,7 @@ A live board of every Canadian listing for six SUVs (2025 Tucsons and CR-Vs, and
 | 2025 CR-V Sport (gas) | Sport trim, gas engine (not Sport Hybrid / Sport Touring) |
 | 2026 CR-V EX-L Hybrid | The same rule for the 2026 CR-V (EX-L is still hybrid-only in Canada) |
 | 2026 CR-V Sport (gas) | The same rule for the 2026 CR-V (not Sport Hybrid, TrailSport Hybrid or Touring Hybrid) |
+| 2026 CR-V Touring Hybrid | Touring trim, hybrid (or fuel not stated; the Touring is hybrid-only in Canada). Not the US Sport Touring |
 
 Rows are cities, cells are prices, and every price links to the original ad. The same car posted on several sites shows once, at its
 lowest price, with a link per site (AT = AutoTrader.ca, CG = CarGurus.ca, KJ = Kijiji, CP = Carpages.ca, DLR = the dealer's own website).

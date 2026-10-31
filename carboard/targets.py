@@ -54,6 +54,14 @@ TARGETS = [
         "rule": "2026 CR-V in Sport trim with a gas engine. Sport Hybrid, TrailSport Hybrid, Sport-L and Sport "
                 "Touring are left out.",
     },
+    {
+        "key": "crv_touring_hybrid_2026",
+        "name": "CR-V Touring Hybrid",
+        "detail": "2026",
+        "label": "2026 Honda CR-V Touring Hybrid",
+        "rule": "2026 CR-V in Touring trim that is a hybrid, or doesn't state its fuel (the Touring is hybrid-only in "
+                "Canada). Sport Touring (a US trim) is left out.",
+    },
 ]
 
 # (pattern, trim). A longer match swallows shorter ones inside it, so 'Sport Touring' isn't also 'Sport'
@@ -208,6 +216,8 @@ def _crv(listing, ident):
         return None
     if trim == "sport" and power in ("gas", ""):
         return f"crv_sport_gas{year}", "confirmed", "Sport, gas" if power else "Sport (gas-only trim in Canada)"
+    if trim == "touring" and listing.year == 2026 and power in ("hybrid", ""):
+        return "crv_touring_hybrid_2026", "confirmed", "Touring hybrid" if power else "Touring (hybrid-only trim in Canada; fuel not stated)"
     return None
 
 

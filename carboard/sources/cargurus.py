@@ -21,7 +21,7 @@ SEARCHES = [  # (model slug, model year, which of CarGurus' trim names to page t
     ("Honda-CR-V-d589", 2025, r"^sport\b(?!.*touring)"),
     ("Honda-CR-V-Hybrid-d3002", 2025, r"\bex-?l\b"),
     ("Honda-CR-V-d589", 2026, r"^sport\b(?!.*touring)"),
-    ("Honda-CR-V-Hybrid-d3002", 2026, r"\bex-?l\b"),
+    ("Honda-CR-V-Hybrid-d3002", 2026, r"\bex-?l\b|^touring\b"),
 ]
 MAX_PAGES = 20
 PAGE_SIZE = 24
