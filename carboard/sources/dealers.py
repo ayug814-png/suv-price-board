@@ -26,10 +26,10 @@ DEALERS = Path(__file__).resolve().parent.parent / "dealers.json"
 # The board's cars by model year, under the model names dealer sites use (D2C's model pages and Convertus's model
 # filter need them exactly).
 SEARCHES = {
-    2025: {"Hyundai": ["Tucson", "Tucson Hybrid"], "Honda": ["CR-V", "CR-V Hybrid"], "Kia": ["Sportage", "Sportage Hybrid", "Sportage HEV"]},
-    2026: {"Hyundai": ["Kona"]},
+    2025: {"Hyundai": ["Tucson", "Tucson Hybrid"], "Honda": ["CR-V", "CR-V Hybrid"]},
+    2026: {"Honda": ["CR-V", "CR-V Hybrid"]},
 }
-WANTED = {2025: re.compile(r"\b(?:tucson|cr[ -]?v|sportage)\b"), 2026: re.compile(r"\bkona\b")}
+WANTED = {2025: re.compile(r"\b(?:tucson|cr[ -]?v)\b"), 2026: re.compile(r"\bcr[ -]?v\b")}
 BOT_CHECK = re.compile(r"<title>just a moment|attention required! \| cloudflare|_incapsula_resource|cf-chl-", re.I)
 RECHECK_GROUPS = 6  # sites that weren't readable are retried in turn, one group per hourly dealer scan
 WORKERS = 16

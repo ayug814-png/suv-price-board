@@ -8,7 +8,7 @@ from ..util import strip_html, tidy_city, to_int
 
 NAME = "AutoTrader.ca"
 SHORT = "AT"
-SEARCHES = [("hyundai", "tucson", 2025), ("honda", "cr-v", 2025), ("kia", "sportage", 2025), ("hyundai", "kona", 2026)]
+SEARCHES = [("hyundai", "tucson", 2025), ("honda", "cr-v", 2025), ("honda", "cr-v", 2026)]
 URL = "https://www.autotrader.ca/cars/{make}/{model}/my_{year}?size=100&page={page}&{order}"
 # The default order reshuffles promoted ads between page loads, so a few can slip past a crawl. Crawl newest
 # first, and if that still comes up short of the site's own total, make a second pass in price order.
