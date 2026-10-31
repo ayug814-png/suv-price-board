@@ -1,18 +1,16 @@
 # SUV Price Board
 
-A live board of every Canadian listing for nine SUVs (six 2025 models and three 2026 Kona trims), refreshed every 15 minutes:
+A live board of every Canadian listing for seven SUVs (2025 Tucsons and CR-Vs, and 2026 CR-Vs), refreshed every 15 minutes:
 
 | Column | What counts |
 | --- | --- |
-| Tucson Preferred w/ Panoramic Sunroof (gas) | Preferred trim with proof of the sunroof: Trend package, "panoramic"/"sunroof" in the title, Trend/SEL Convenience trim code, or a Preferred-with-Trend VIN (5NMJC…/3KMJC…) |
-| Tucson Hybrid N Line | N Line hybrids (the lowest 2025 hybrid trim in Canada; panoramic sunroof is standard). Hybrids labelled "SEL Convenience" by US VIN decoders are shown as likely (?) because that VIN series also covers some Ultimates |
-| CR-V EX-L Hybrid | EX-L trim, hybrid (or fuel not stated; EX-L is hybrid-only for 2025 in Canada) |
-| CR-V Sport (gas) | Sport trim, gas engine (not Sport Hybrid / Sport Touring) |
-| Sportage EX w/ Panoramic Sunroof (gas) | EX trim, gas engine, with proof of the sunroof: roof wording in the title or "panoramic sunroof" in the description (a plain "sunroof" in the description or a ticked sunroof box shows as likely (?)). Not EX Premium, X-Line or the hybrids; an EX whose ad doesn't state the fuel counts as gas unless it mentions a hybrid |
-| Sportage EX Hybrid w/ Panoramic Sunroof | EX trim, hybrid (not the plug-in, EX Premium or SX), with the same proof of the sunroof |
-| 2026 Kona Preferred w/ Sunroof | Preferred trim (gas) with proof of the sunroof, which on the Preferred only comes with the Trend package: "Trend" in the title or description, sunroof wording in the title, or a Preferred-with-Trend VIN (KM8HC…). A plain "sunroof" in the description or a ticked sunroof box shows as likely (?). Kona Electric is left out |
-| 2026 Kona N Line | N Line without the Ultimate package, named in the ad or shown by its VIN (KM8HA… with the 1.6L turbo); the sunroof is standard on it |
-| 2026 Kona N Line Ultimate w/ Sunroof | N Line with the Ultimate package, named in the ad or shown by its VIN (KM8HE…); the sunroof is standard on it. Plain N Lines have their own column |
+| 2025 Tucson Preferred w/ Panoramic Sunroof (gas) | Preferred trim with proof of the sunroof: Trend package, "panoramic"/"sunroof" in the title, Trend/SEL Convenience trim code, or a Preferred-with-Trend VIN (5NMJC…/3KMJC…) |
+| 2025 Tucson Hybrid N Line | N Line hybrids (the lowest 2025 hybrid trim in Canada; panoramic sunroof is standard). Hybrids labelled "SEL Convenience" by US VIN decoders are shown as likely (?) because that VIN series also covers some Ultimates |
+| 2025 CR-V EX-L Hybrid | EX-L trim, hybrid (or fuel not stated; EX-L is hybrid-only in Canada) |
+| 2025 CR-V Sport (gas) | Sport trim, gas engine (not Sport Hybrid / Sport Touring) |
+| 2026 CR-V EX-L Hybrid | The same rule for the 2026 CR-V (EX-L is still hybrid-only in Canada) |
+| 2026 CR-V Sport (gas) | The same rule for the 2026 CR-V (not Sport Hybrid, TrailSport Hybrid or Touring Hybrid) |
+| 2026 CR-V Touring Hybrid | Touring trim, hybrid (or fuel not stated; the Touring is hybrid-only in Canada). Not the US Sport Touring |
 
 Rows are cities, cells are prices, and every price links to the original ad. The same car posted on several sites shows once, at its
 lowest price, with a link per site (AT = AutoTrader.ca, CG = CarGurus.ca, KJ = Kijiji, CP = Carpages.ca, DLR = the dealer's own website).
