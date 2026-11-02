@@ -3,6 +3,7 @@ import gzip
 import random
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 BROWSER_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
@@ -34,17 +35,27 @@ class Fetcher:
         self._last = time.monotonic()
 
     def get(self, url, accept=HTML_ACCEPT):
+        return self._fetch(url, accept)
+
+    def post(self, url, form, accept=HTML_ACCEPT):
+        """Send a form (a dict) the way a page's script does, for results a page only loads that way."""
+        return self._fetch(url, accept, urllib.parse.urlencode(form).encode())
+
+    def _fetch(self, url, accept, body=None):
+        headers = {
+            "User-Agent": self.user_agent,
+            "Accept": accept,
+            "Accept-Language": "en-CA,en;q=0.9",
+            "Accept-Encoding": "gzip",
+        }
+        if body is not None:
+            headers["Content-Type"] = "application/x-www-form-urlencoded; charset=UTF-8"
         error = None
         for attempt in range(self.retries + 1):
             if attempt:
                 time.sleep(8 * attempt)
             self._pace()
-            request = urllib.request.Request(url, headers={
-                "User-Agent": self.user_agent,
-                "Accept": accept,
-                "Accept-Language": "en-CA,en;q=0.9",
-                "Accept-Encoding": "gzip",
-            })
+            request = urllib.request.Request(url, data=body, headers=headers)
             self.requests += 1
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:

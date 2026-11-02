@@ -2,6 +2,10 @@
 
 CarGurus decodes each car's trim from its VIN, so for each model we read the trim filter list and only page
 through the trims that can belong on the board. Detail pages block scripts, but links open fine in a browser.
+
+Results mix new and used cars without marking which is which, and the condition filter can only pick out the used
+ones (manufacturer-certified included). So a trim with both is read a second time, used only, and the rest are new;
+dealers' demonstrators count as new there, so a "new" car with DEMO_KM or more on it is shown as a demo.
 """
 import json
 import re
@@ -16,6 +20,8 @@ SHORT = "CG"
 BASE = "https://www.cargurus.ca/Cars/l-Used-{slug}?distance=50000&startYear={year}&endYear={year}"
 ROUTE = "_data=" + urllib.parse.quote("routes/($intl).Cars.$seoPath", safe="")
 PREMIUM_PACKAGE = "&installedOptionIds=12"  # listings ticked with CarGurus' "Premium Package" option
+USED = "&newUsed=2"
+DEMO_KM = 1000  # cars moved between dealers arrive with a few hundred km; demonstrators have thousands
 SEARCHES = [  # (model slug, model year, which of CarGurus' trim names to page through[, filters])
     ("Hyundai-Tucson-d98", 2025, r"preferred|trend|sel convenience"),
     ("Hyundai-Tucson-Hybrid-d3141", 2025, r"n line|sel convenience"),
@@ -51,20 +57,41 @@ def fetch(log):
             if trim.get("count", 0) > 0 and re.search(trim_filter, trim.get("label", ""), re.I)
         ]
         for path in trim_paths:
-            page, pages = 1, 1
-            while page <= min(pages, MAX_PAGES):
-                try:
-                    search = _search(http, f"{base}&makeModelTrimPaths={urllib.parse.quote(path, safe='')}&page={page}")
-                except FetchError as e:
-                    errors.append(str(e))
-                    break
-                # pageCount runs one past the real last page, which then fails; count pages from the total instead.
-                pages = min(search.get("pageCount") or 1, -(-(search.get("totalListings") or 0) // PAGE_SIZE))
-                for listing in filter(None, map(_listing, search.get("tiles") or [])):
+            url = f"{base}&makeModelTrimPaths={urllib.parse.quote(path, safe='')}"
+            listings, counts, _ = _all_pages(http, url, errors)
+            used, used_complete = set(), True
+            if counts.get("NEW") and counts.get("USED"):
+                used_listings, _, used_complete = _all_pages(http, url + USED, errors)
+                for listing in used_listings:  # includes used cars past MAX_PAGES of a long, mostly new trim
                     found[listing.source_id] = listing
-                page += 1
+                used = {listing.source_id for listing in used_listings}
+            for listing in listings:
+                # A car the used-only pass didn't list is new, unless that pass fell short; then it stays "used".
+                new = bool(counts.get("NEW")) and used_complete and listing.source_id not in used
+                listing.condition = "used" if not new else "demo" if (listing.km or 0) >= DEMO_KM else "new"
+                found.setdefault(listing.source_id, listing)
         log.info("cargurus %s %d: trims %s", slug, year, trim_paths)
     return SourceResult(list(found.values()), errors, http.requests)
+
+
+def _all_pages(http, url, errors):
+    """The listings of one search (up to MAX_PAGES of it), its counts of new and used cars, and whether every one
+    was read."""
+    listings, counts, page, pages = [], {}, 1, 1
+    while page <= min(pages, MAX_PAGES):
+        try:
+            search = _search(http, f"{url}&page={page}")
+        except FetchError as e:
+            errors.append(str(e))
+            return listings, counts, False
+        if page == 1:
+            counts = {f.get("name"): f.get("count") or 0
+                      for f in (search.get("filters", {}).get("VEHICLE_CONDITION") or {}).get("filters", [])}
+        # pageCount runs one past the real last page, which then fails; count pages from the total instead.
+        pages = min(search.get("pageCount") or 1, -(-(search.get("totalListings") or 0) // PAGE_SIZE))
+        listings += filter(None, map(_listing, search.get("tiles") or []))
+        page += 1
+    return listings, counts, pages <= MAX_PAGES
 
 
 def _search(http, url):
