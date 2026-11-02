@@ -11,6 +11,7 @@ SHORT = "KJ"
 SEARCHES = [
     "carmake=hyundai&carmodel=tucson__tucson_hybrid&caryear=2025__2025",
     "carmake=honda&carmodel=crv&caryear=2025__2026",
+    "carmake=mazda&carmodel=cx5&caryear=2025__2026",
 ]
 URL = "https://www.kijiji.ca/b-cars-trucks/canada/{page}c174l0?{query}"
 PAGE_SIZE = 40

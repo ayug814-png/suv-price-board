@@ -62,6 +62,24 @@ TARGETS = [
         "rule": "2026 CR-V in Touring trim that is a hybrid, or doesn't state its fuel (the Touring is hybrid-only in "
                 "Canada). Sport Touring (a US trim) is left out.",
     },
+    {
+        "key": "cx5_gt",
+        "name": "CX-5 GT",
+        "detail": "2025 · Sunroof standard",
+        "label": "2025 Mazda CX-5 GT",
+        "rule": "CX-5 in GT trim. Every 2025 GT has the power glass moonroof (the GT builds on the GS with Comfort "
+                "Package). Kuro, Sport Design, Suna and Signature are left out.",
+    },
+    {
+        "key": "cx5_gt_pano_2026",
+        "name": "CX-5 GT",
+        "detail": "2026 · w/ Panoramic Sunroof",
+        "label": "2026 Mazda CX-5 GT w/ Panoramic Sunroof",
+        "rule": "2026 CX-5 in GT trim with proof of the panoramic roof, a $2,000 GT option and the 2026 CX-5's "
+                "only sunroof: roof wording or the Premium Package (which requires the roof) in the title, either one "
+                "named in the description, or the Premium Package ticked in the listing's options. A plain 'sunroof' in "
+                "the description or a ticked sunroof box makes it a likely match (?).",
+    },
 ]
 
 # (pattern, trim). A longer match swallows shorter ones inside it, so 'Sport Touring' isn't also 'Sport'
@@ -89,6 +107,15 @@ CRV_TRIMS = [
     (r"\bse\b", "se"),
     (r"\bblack edition\b", "black edition"),
 ]
+CX5_TRIMS = [
+    (r"\bsport design\b", "sport design"),
+    (r"\bsignature\b", "signature"),
+    (r"\bsuna\b", "suna"),
+    (r"\bkuro\b", "kuro"),
+    (r"\bgt\b", "gt"),
+    (r"\bgs\b", "gs"),
+    (r"\bgx\b", "gx"),
+]
 
 # 'Trend' package, its French name, or Hyundai Canada's model code for it (TUCWDK2EPRTR vs. base TUCWDK2EPR00).
 TREND = re.compile(r"\btrend\b|\btendance\b|\btuc[a-z0-9]{5,}prtr\b")
@@ -97,6 +124,12 @@ ROOF_IN_TITLE = re.compile(r"\bpano\w*|\bsun ?roof|\bmoon ?roof|\btoit\b")
 # Descriptions need the explicit phrase; checklists of generic features are weaker evidence.
 PANO_IN_TEXT = re.compile(r"\bpano(?:ramic|ramique|rama)?[ -]*(?:glass[ -]*)?(?:sun|moon)?[ -]*roof|\bpanoroof|\btoit (?:ouvrant )?pano")
 ROOF_IN_TEXT = re.compile(r"\bsun ?roof|\bmoon ?roof|\btoit ouvrant")
+# The 2026 CX-5 GT's Premium Package requires its panoramic roof. "Premium" alone isn't proof: the GT's Bose
+# stereo is a "Bose Premium sound system".
+PREMIUM_IN_TITLE = re.compile(r"(?:\bgt[ -]+|\bw/ ?|\bwith |\bavec |\b(?:ensemble|groupe) )premium\b"
+                              r"(?! (?:audio|sound|stereo|speakers?|bose|leather|cuir)\b)"
+                              r"|\bpremium (?:package|pkg|pack)\b")
+PREMIUM_IN_TEXT = re.compile(r"\bpremium (?:package|pkg|pack)\b|\b(?:ensemble|groupe) premium\b")
 PLUG_IN = re.compile(r"plug[ -]?in|\bphev\b|rechargeable")
 HYBRID = re.compile(r"\bhybrid\b|\bhybride\b|\bhev\b")
 
@@ -140,6 +173,8 @@ def classify(listing):
         return _tucson(listing, ident) if listing.year == 2025 else None
     if "honda" in family and re.search(r"\bcr[ -]?v\b", family):
         return _crv(listing, ident)
+    if "mazda" in family and re.search(r"\bcx[ -]?5\b", family):
+        return _cx5(listing, ident)
     return None
 
 
@@ -169,7 +204,6 @@ def _tucson_preferred_pano(listing, ident, site_trim, trims):
     trend_named = bool(TREND.search(ident) or TREND.search(site_trim))
     if not (trim in ("preferred", "sel convenience") or (trim in ("", "sel") and (vin_trend or trend_named))):
         return None
-    target = "tucson_pref_pano"
 
     strong = []
     if TREND.search(site_trim) or "sel convenience" in site_trim:
@@ -178,16 +212,25 @@ def _tucson_preferred_pano(listing, ident, site_trim, trims):
         strong.append("listed as SEL Convenience (same equipment as Preferred w/ Trend)")
     if vin_trend:
         strong.append("VIN is in the Preferred-w/-Trend series")
-    for pattern in (TREND, ROOF_IN_TITLE):
+    proof = _roof_proof(listing, ident, (TREND, ROOF_IN_TITLE), (TREND, PANO_IN_TEXT), strong)
+    return ("tucson_pref_pano", *proof) if proof else None
+
+
+def _roof_proof(listing, ident, in_title, in_text, strong=()):
+    """('confirmed' | 'likely', evidence) for a car that only belongs on the board with its sunroof, or None. Proof in
+    the title or the description (or passed in as `strong`) confirms it; a plain 'sunroof' in the description or a
+    sunroof ticked in the listing's feature list makes it likely."""
+    strong = list(strong)
+    for pattern in in_title:
         m = pattern.search(ident)
         if m:
             strong.append(f"'{m.group(0)}' in title")
     text = norm(listing.text)
-    m = TREND.search(text) or PANO_IN_TEXT.search(text)
+    m = next(filter(None, (pattern.search(text) for pattern in in_text)), None)
     if m:
         strong.append(f"'{m.group(0)}' in description")
     if strong:
-        return target, "confirmed", "; ".join(dict.fromkeys(strong))
+        return "confirmed", "; ".join(dict.fromkeys(strong))
 
     weak = []
     m = ROOF_IN_TEXT.search(text)
@@ -195,9 +238,7 @@ def _tucson_preferred_pano(listing, ident, site_trim, trims):
         weak.append(f"'{m.group(0)}' in description")
     if "sunroof" in listing.features:
         weak.append("sunroof ticked in the listing's feature list")
-    if weak:
-        return target, "likely", "; ".join(weak)
-    return None
+    return ("likely", "; ".join(weak)) if weak else None
 
 
 def _crv(listing, ident):
@@ -219,6 +260,18 @@ def _crv(listing, ident):
     if trim == "touring" and listing.year == 2026 and power in ("hybrid", ""):
         return "crv_touring_hybrid_2026", "confirmed", "Touring hybrid" if power else "Touring (hybrid-only trim in Canada; fuel not stated)"
     return None
+
+
+def _cx5(listing, ident):
+    trims = _trims(ident, CX5_TRIMS) or _trims(norm(listing.site_trim), CX5_TRIMS)
+    if not trims or trims[0] != "gt":
+        return None
+    if listing.year == 2025:
+        return "cx5_gt", "confirmed", "GT (power moonroof is standard)"
+    # The 2026 CX-5's only sunroof is the GT's optional panoramic roof, so roof wording in a title means that one.
+    strong = ["Premium Package ticked in the listing's feature list"] if "premium package" in listing.features else []
+    proof = _roof_proof(listing, ident, (ROOF_IN_TITLE, PREMIUM_IN_TITLE), (PANO_IN_TEXT, PREMIUM_IN_TEXT), strong)
+    return ("cx5_gt_pano_2026", *proof) if proof else None
 
 
 def wants_description(listing):

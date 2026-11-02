@@ -15,13 +15,19 @@ NAME = "CarGurus.ca"
 SHORT = "CG"
 BASE = "https://www.cargurus.ca/Cars/l-Used-{slug}?distance=50000&startYear={year}&endYear={year}"
 ROUTE = "_data=" + urllib.parse.quote("routes/($intl).Cars.$seoPath", safe="")
-SEARCHES = [  # (model slug, model year, which of CarGurus' trim names to page through)
+PREMIUM_PACKAGE = "&installedOptionIds=12"  # listings ticked with CarGurus' "Premium Package" option
+SEARCHES = [  # (model slug, model year, which of CarGurus' trim names to page through[, filters])
     ("Hyundai-Tucson-d98", 2025, r"preferred|trend|sel convenience"),
     ("Hyundai-Tucson-Hybrid-d3141", 2025, r"n line|sel convenience"),
     ("Honda-CR-V-d589", 2025, r"^sport\b(?!.*touring)"),
     ("Honda-CR-V-Hybrid-d3002", 2025, r"\bex-?l\b"),
     ("Honda-CR-V-d589", 2026, r"^sport\b(?!.*touring)"),
     ("Honda-CR-V-Hybrid-d3002", 2026, r"\bex-?l\b|^touring\b"),
+    ("Mazda-CX-5-d2133", 2025, r"^gt\b"),
+    # CarGurus tiles have no description, so its option ticks are the only sign of a 2026 GT's panoramic roof. Its
+    # "Sunroof/Moonroof" tick is wrong on about a quarter of them (they're priced like GTs without the roof), so only
+    # GTs ticked with the Premium Package, which requires the roof, are read.
+    ("Mazda-CX-5-d2133", 2026, r"^gt\b", PREMIUM_PACKAGE),
 ]
 MAX_PAGES = 20
 PAGE_SIZE = 24
@@ -31,8 +37,8 @@ FUELS = {"Gasoline": "gas", "Hybrid": "hybrid", "Plug-In Hybrid": "phev", "Elect
 def fetch(log):
     http = Fetcher(min_gap=3.0, jitter=2.0)
     found, errors = {}, []
-    for slug, year, trim_filter in SEARCHES:
-        base = BASE.format(slug=slug, year=year)
+    for slug, year, trim_filter, *filters in SEARCHES:
+        base = BASE.format(slug=slug, year=year) + "".join(filters)
         try:
             first = _search(http, base)
         except FetchError as e:
@@ -81,6 +87,9 @@ def _listing(tile):
     if km is not None and mileage.get("unit") == "MILES":
         km = km * 1.609
     options = data.get("options") or []
+    features = ["sunroof"] if any(re.search(r"sunroof|moonroof", o, re.I) for o in options) else []
+    if "Premium Package" in options:
+        features.append("premium package")
     dealer = seller.get("serviceProviderName") or ""
     city = seller.get("city") or ""
     if not city and " - " in dealer:  # online retailers such as "Clutch - Halifax" list no address
@@ -105,5 +114,5 @@ def _listing(tile):
         seller_type="private" if seller.get("sellerType") == "PRIVATE" else "dealer",
         condition="used",
         vin=(data.get("vin") or "").upper(),
-        features=["sunroof"] if any(re.search(r"sunroof|moonroof", o, re.I) for o in options) else [],
+        features=features,
     )

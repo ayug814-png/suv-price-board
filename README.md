@@ -1,6 +1,7 @@
 # SUV Price Board
 
-A live board of every Canadian listing for seven SUVs (2025 Tucsons and CR-Vs, and 2026 CR-Vs), refreshed every 15 minutes:
+A live board of every Canadian listing for nine SUVs (2025 Tucsons, CR-Vs and CX-5s, and 2026 CR-Vs and CX-5s), refreshed every
+15 minutes:
 
 | Column | What counts |
 | --- | --- |
@@ -11,6 +12,8 @@ A live board of every Canadian listing for seven SUVs (2025 Tucsons and CR-Vs, a
 | 2026 CR-V EX-L Hybrid | The same rule for the 2026 CR-V (EX-L is still hybrid-only in Canada) |
 | 2026 CR-V Sport (gas) | The same rule for the 2026 CR-V (not Sport Hybrid, TrailSport Hybrid or Touring Hybrid) |
 | 2026 CR-V Touring Hybrid | Touring trim, hybrid (or fuel not stated; the Touring is hybrid-only in Canada). Not the US Sport Touring |
+| 2025 CX-5 GT | GT trim (every 2025 GT has the power moonroof). Not Kuro, Sport Design, Suna or Signature |
+| 2026 CX-5 GT w/ Panoramic Sunroof | GT trim with proof of the panoramic roof, a $2,000 GT option and the 2026 CX-5's only sunroof: roof wording or the Premium Package (which requires the roof) in the title, either one named in the description, or the Premium Package ticked in the listing's options. A plain "sunroof" in the description or a ticked sunroof box shows as likely (?). On CarGurus, whose sunroof tick is often wrong on these, only GTs ticked with the Premium Package are read |
 
 Rows are cities, cells are prices, and every price links to the original ad. The same car posted on several sites shows once, at its
 lowest price, with a link per site (AT = AutoTrader.ca, CG = CarGurus.ca, KJ = Kijiji, CP = Carpages.ca, DLR = the dealer's own website).
