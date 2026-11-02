@@ -162,9 +162,11 @@ def _with_descriptions(listings, describe):
     return listings
 
 
-# ---- D2C Media: server-rendered results, 36 vehicles a page ----
+# ---- D2C Media: server-rendered results, 36 vehicles a page; the page's script loads the pages after the first ----
 
 D2C_STATE = re.compile(r'id="filterState" value="([^"]+)"')
+D2C_FILTER = re.compile(r'id="filterid" value="([^"]+)"')
+D2C_MORE = "/en/ajax/getSearchVehiclesFromFilterObject?wswidth=0"
 
 
 def _d2c(http, dealer):
@@ -181,7 +183,8 @@ def _d2c(http, dealer):
 
 def _d2c_cards(http, base, root, year, makes):
     """The wanted vehicles of one year under /used (used and demo) or /new/inventory. A results page holds 36, so the
-    search starts as wide as the wanted cars allow (the whole year, one make, or one model) and a full page is split."""
+    search starts as wide as the wanted cars allow (the whole year, one make, or one model) and a full page is split;
+    a model's results are read page by page."""
     if len(makes) > 1:
         cards, count = _d2c_page(http, f"{base}{root}/search.html?year={year}", base)
         if count <= len(cards):
@@ -193,18 +196,34 @@ def _d2c_cards(http, base, root, year, makes):
             if count <= len(page):
                 cards += page
                 continue
-        cards += [card for model in models
-                  for card in _d2c_page(http, f"{base}{root}/{year}-{make}-{re.sub(r'[ -]', '_', model)}.html", base)[0]]
+        for model in models:
+            url = f"{base}{root}/{year}-{make}-{re.sub(r'[ -]', '_', model)}.html"
+            cards += _d2c_page(http, url, base, every_page=True)[0]
     return cards
 
 
-def _d2c_page(http, url, base):
+def _d2c_page(http, url, base, every_page=False):
+    """The wanted cards on a results page, and how many results the search has. With every_page, the pages after the
+    first are read too: the site's script asks for them by posting the page's filter (base64 JSON in a hidden input)
+    back with the next page number."""
     html = http.get(url)
     state = D2C_STATE.search(html)
     if not state:
         raise FetchError(f"no D2C results on {url}")
     count = json.loads(base64.b64decode(state.group(1) + "==")).get("countSearchResults") or 0
-    cards = [card for chunk in html.split('<div class="carBoxOuter')[1:] if (card := _d2c_card(chunk, base))]
+    chunks = html.split('<div class="carBoxOuter')[1:]
+    cards = [card for chunk in chunks if (card := _d2c_card(chunk, base))]
+    if not every_page or count <= len(chunks):
+        return cards, count
+    search = D2C_FILTER.search(html)
+    if not search:  # an older page layout: keep what the first page shows
+        return cards, count
+    basic = json.loads(base64.b64decode(search.group(1) + "=="))["basic"]
+    per_page = (basic.get("fltPageId") or [0, len(chunks)])[1]
+    for page in range(1, -(-count // per_page)):
+        form = {"filterid": json.dumps(dict(basic, fltPageId=[page, per_page]), separators=(",", ":"))}
+        more = json.loads(http.post(base + D2C_MORE, form, accept="application/json, */*")).get("html") or ""
+        cards += [card for chunk in more.split('<div class="carBoxOuter')[1:] if (card := _d2c_card(chunk, base))]
     return cards, count
 
 
