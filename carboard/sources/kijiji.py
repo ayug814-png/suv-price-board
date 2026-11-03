@@ -10,6 +10,7 @@ NAME = "Kijiji"
 SHORT = "KJ"
 SEARCHES = [
     "carmake=hyundai&carmodel=tucson__tucson_hybrid&caryear=2025__2025",
+    "carmake=hyundai&carmodel=tucson__tucson_hybrid&caryear=2026__2026",  # most 2026 hybrids are filed as "tucson"
     "carmake=honda&carmodel=crv&caryear=2025__2026",
     "carmake=mazda&carmodel=cx5&caryear=2025__2026",
 ]

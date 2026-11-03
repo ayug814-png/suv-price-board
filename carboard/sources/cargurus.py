@@ -29,6 +29,7 @@ SEARCHES = [  # (model slug, model year, which of CarGurus' trim names to page t
     ("Honda-CR-V-Hybrid-d3002", 2025, r"\bex-?l\b"),
     ("Honda-CR-V-d589", 2026, r"^sport\b(?!.*touring)"),
     ("Honda-CR-V-Hybrid-d3002", 2026, r"\bex-?l\b|^touring\b"),
+    ("Hyundai-Tucson-Hybrid-d3141", 2026, r"^ultimate\b"),
     ("Mazda-CX-5-d2133", 2025, r"^gt\b"),
     # CarGurus tiles have no description, so its option ticks are the only sign of a 2026 GT's panoramic roof. Its
     # "Sunroof/Moonroof" tick is wrong on about a quarter of them (they're priced like GTs without the roof), so only

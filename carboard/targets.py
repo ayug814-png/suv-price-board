@@ -24,6 +24,16 @@ TARGETS = [
                 "N Line's VIN series (so do some Ultimates), so they're shown as likely matches (?).",
     },
     {
+        "key": "tucson_hev_ultimate_2026",
+        "name": "Tucson Hybrid Ultimate",
+        "detail": "2026 · Not plug-in",
+        "label": "2026 Hyundai Tucson Hybrid Ultimate (not plug-in)",
+        "rule": "2026 Tucson in Ultimate trim that is a regular hybrid. The plug-in hybrid, which Canada only gets "
+                "as an Ultimate, is left out. Where a site gives the VIN, its engine code settles which it is (8th "
+                "character 1 = hybrid, 2 = plug-in); otherwise the ad must say hybrid. There's no gas Ultimate for "
+                "2026, so an Ultimate whose ad says neither is a likely match (?).",
+    },
+    {
         "key": "crv_exl_hybrid",
         "name": "CR-V EX-L Hybrid",
         "detail": "2025",
@@ -84,13 +94,14 @@ TARGETS = [
 
 # (pattern, trim). A longer match swallows shorter ones inside it, so 'Sport Touring' isn't also 'Sport'
 # and 'EX-L' isn't also 'EX'; the first trim named in the title is the car's trim (later ones are usually
-# sales talk like "the ultimate deal"). Only 2025 trim names are listed, so words like "limited" stay neutral.
+# sales talk like "the ultimate deal"). Only Canadian trim names are listed, so words like "limited" stay neutral;
+# dealer sites shorten Ultimate to "Ult" ("Hev Ult").
 TUCSON_TRIMS = [
     (r"\bsel convenience\b", "sel convenience"),
     (r"\bpreferred\b|\bprivilegie\b", "preferred"),
     (r"\bessential\b|\bessentiel\b", "essential"),
     (r"\bn[ -]?line", "n line"),
-    (r"\bultimate\b", "ultimate"),
+    (r"\bultimate\b|\bult\b", "ultimate"),
     (r"\bxrt\b", "xrt"),
     (r"\bnight edition\b", "night edition"),
     (r"\bsel\b", "sel"),
@@ -170,7 +181,7 @@ def classify(listing):
     ident = norm(f"{listing.title} {listing.trim}")
     family = norm(f"{listing.make} {listing.model} {listing.title}")
     if "hyundai" in family and "tucson" in family:
-        return _tucson(listing, ident) if listing.year == 2025 else None
+        return _tucson(listing, ident) if listing.year == 2025 else _tucson_hybrid_ultimate(listing, ident)
     if "honda" in family and re.search(r"\bcr[ -]?v\b", family):
         return _crv(listing, ident)
     if "mazda" in family and re.search(r"\bcx[ -]?5\b", family):
@@ -196,6 +207,31 @@ def _tucson_hybrid_n_line(listing, trims):
     if trim == "sel convenience" and _tucson_vin_series(listing.vin) in ("C", ""):
         return "tucson_hev_nline", "likely", "listed as SEL Convenience, the US name for this VIN series, which covers Canadian N Line and some Ultimate hybrids"
     return None
+
+
+def _tucson_vin_engine(vin):
+    """Character 8 of a 2026 Tucson VIN is its engine: 1 = the hybrid's, 2 = the plug-in hybrid's, E = the 2.5 gas
+    engine (every 2026 Tucson on the sites whose powertrain is stated follows this)."""
+    vin = (vin or "").upper()
+    return vin[7] if len(vin) == 17 and vin[:3] in ("5NM", "KM8", "3KM") and vin[3] == "J" else ""
+
+
+def _tucson_hybrid_ultimate(listing, ident):
+    """2026: Canada's Ultimate comes as the hybrid or the plug-in hybrid, with no gas one."""
+    trims = _trims(ident, TUCSON_TRIMS) or _trims(norm(listing.site_trim), TUCSON_TRIMS)
+    if not trims or trims[0] != "ultimate":
+        return None
+    engine = _tucson_vin_engine(listing.vin)
+    if engine == "1":
+        return "tucson_hev_ultimate_2026", "confirmed", "Ultimate; the VIN is the hybrid's"
+    if engine in ("2", "E"):  # the plug-in hybrid, or a gas Tucson whose ad calls its price "ultimate"
+        return None
+    power = _powertrain(listing, ident)
+    if power == "hybrid":
+        return "tucson_hev_ultimate_2026", "confirmed", "Ultimate hybrid"
+    if power in ("gas", ""):
+        return "tucson_hev_ultimate_2026", "likely", "Ultimate; the ad doesn't say hybrid or plug-in"
+    return None  # the plug-in hybrid, or a plug-in listed as electric
 
 
 def _tucson_preferred_pano(listing, ident, site_trim, trims):

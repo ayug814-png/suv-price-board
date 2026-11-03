@@ -27,9 +27,9 @@ DEALERS = Path(__file__).resolve().parent.parent / "dealers.json"
 # filter need them exactly).
 SEARCHES = {
     2025: {"Hyundai": ["Tucson", "Tucson Hybrid"], "Honda": ["CR-V", "CR-V Hybrid"], "Mazda": ["CX-5"]},
-    2026: {"Honda": ["CR-V", "CR-V Hybrid"], "Mazda": ["CX-5"]},
+    2026: {"Hyundai": ["Tucson", "Tucson Hybrid"], "Honda": ["CR-V", "CR-V Hybrid"], "Mazda": ["CX-5"]},
 }
-WANTED = {2025: re.compile(r"\b(?:tucson|cr[ -]?v|cx[ -]?5)\b"), 2026: re.compile(r"\b(?:cr[ -]?v|cx[ -]?5)\b")}
+WANTED = {year: re.compile(r"\b(?:tucson|cr[ -]?v|cx[ -]?5)\b") for year in SEARCHES}
 BOT_CHECK = re.compile(r"<title>just a moment|attention required! \| cloudflare|_incapsula_resource|cf-chl-", re.I)
 RECHECK_GROUPS = 6  # sites that weren't readable are retried in turn, one group per hourly dealer scan
 WORKERS = 16
