@@ -1,12 +1,13 @@
 # SUV Price Board
 
-A live board of every Canadian listing for nine SUVs (2025 Tucsons, CR-Vs and CX-5s, and 2026 CR-Vs and CX-5s), refreshed every
+A live board of every Canadian listing for ten SUVs (2025 and 2026 Tucsons, CR-Vs and CX-5s), refreshed every
 15 minutes:
 
 | Column | What counts |
 | --- | --- |
 | 2025 Tucson Preferred w/ Panoramic Sunroof (gas) | Preferred trim with proof of the sunroof: Trend package, "panoramic"/"sunroof" in the title, Trend/SEL Convenience trim code, or a Preferred-with-Trend VIN (5NMJC…/3KMJC…) |
 | 2025 Tucson Hybrid N Line | N Line hybrids (the lowest 2025 hybrid trim in Canada; panoramic sunroof is standard). Hybrids labelled "SEL Convenience" by US VIN decoders are shown as likely (?) because that VIN series also covers some Ultimates |
+| 2026 Tucson Hybrid Ultimate (not plug-in) | Ultimate trim, regular hybrid. The plug-in hybrid, which Canada only gets as an Ultimate, is left out; there's no gas 2026 Ultimate, so an Ultimate whose ad doesn't say hybrid or plug-in shows as likely (?) |
 | 2025 CR-V EX-L Hybrid | EX-L trim, hybrid (or fuel not stated; EX-L is hybrid-only in Canada) |
 | 2025 CR-V Sport (gas) | Sport trim, gas engine (not Sport Hybrid / Sport Touring) |
 | 2026 CR-V EX-L Hybrid | The same rule for the 2026 CR-V (EX-L is still hybrid-only in Canada) |

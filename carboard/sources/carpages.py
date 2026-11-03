@@ -13,7 +13,7 @@ NAME = "Carpages.ca"
 SHORT = "CP"
 SEARCHES = [
     ("Hyundai", "Tucson", 2025), ("Honda", "CR-V", 2025), ("Honda", "CR-V", 2026),
-    ("Mazda", "CX-5", 2025), ("Mazda", "CX-5", 2026),
+    ("Mazda", "CX-5", 2025), ("Mazda", "CX-5", 2026), ("Hyundai", "Tucson", 2026),
 ]
 URL = "https://www.carpages.ca/used-cars/search/?make_name={make}&model_name={model}&year_start={year}&year_end={year}&page={page}"
 PAGE_SIZE = 50

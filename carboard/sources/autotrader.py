@@ -8,9 +8,13 @@ from ..util import strip_html, tidy_city, to_int
 
 NAME = "AutoTrader.ca"
 SHORT = "AT"
-SEARCHES = [
+SEARCHES = [  # (make, model[/variant/trim], model year[, filters])
     ("hyundai", "tucson", 2025), ("honda", "cr-v", 2025), ("honda", "cr-v", 2026),
     ("mazda", "cx-5", 2025), ("mazda", "cx-5", 2026),
+    # The 2026 Tucson has more ads than a search serves (40 pages), so only the Hybrid Ultimate is read: its variant
+    # and trim, plus the ads that carry neither and name it in their trim text.
+    ("hyundai", "tucson/va_tucson-hybrid/tn_ultimate", 2026),
+    ("hyundai", "tucson", 2026, "&version0=ultimate%20hybrid"),
 ]
 URL = "https://www.autotrader.ca/cars/{make}/{model}/my_{year}?size=100&page={page}&{order}"
 # The default order reshuffles promoted ads between page loads, so a few can slip past a crawl. Crawl newest
@@ -29,9 +33,9 @@ CONDITIONS = {"U": "used", "N": "new", "D": "demo", "J": "used", "S": "new"}
 def fetch(log):
     http = Fetcher(min_gap=2.0)
     found, errors = {}, []
-    for make, model, year in SEARCHES:
+    for make, model, year, *filters in SEARCHES:
         seen, total, failures = set(), 0, len(errors)
-        for order in ORDERS:
+        for order in (order + "".join(filters) for order in ORDERS):
             page, pages = 1, 1
             while page <= min(pages, MAX_PAGES):
                 try:
